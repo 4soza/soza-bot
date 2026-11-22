@@ -1,17 +1,34 @@
 const bossService = require('../boss/bossService');
 const bossView = require('../boss/bossView');
+const crateDb = require('../battle/crateDb');
 const { fail } = require('../battle/commandUtil');
-const { onCooldown } = require('../utils');
+const { onCooldown, displayName } = require('../utils');
 
-// sboss = tampilkan guild boss server ini (selalu ada, bisa dilawan bersama-sama)
+// sboss = tampilkan guild boss yang sedang aktif di server ini. sboss t = cek tiket boss.
+// Boss muncul sendiri setelah battle (peluang kecil) dan kabur kalau tidak dilawan dalam 1 jam.
 module.exports = {
     name: 'boss',
     aliases: [],
-    async execute(message) {
+    async execute(message, args = []) {
         if (!message.guild) return fail(message, 'this command only works in a server!');
         if (onCooldown(message, 'boss')) return;
-        const doc = await bossService.currentBoss(message.guild.id);
-        if (!doc) return fail(message, 'could not find the boss, try again!');
+
+        if (['t', 'ticket', 'tickets'].includes(String(args[0] || '').toLowerCase())) {
+            const max = bossService.CONFIG.TICKETS_PER_DAY;
+            const left = await bossService.ticketsLeft(message.author.id);
+            const resetUnix = Math.floor((Date.now() + crateDb.msUntilReset()) / 1000);
+            const icons = bossView.ticketIcons(left);
+            return message.channel.send({
+                embeds: [{
+                    color: 0x7dbceb,
+                    description: `${icons}\n\n**${displayName(message)}**, you currently have **${left}/${max}** boss ticket${left === 1 ? '' : 's'}!\n-# Replenishes <t:${resetUnix}:R>`
+                }],
+                allowedMentions: { parse: [] }
+            });
+        }
+
+        const doc = await bossService.activeBoss(message.guild.id);
+        if (!doc) return fail(message, 'there is no guild boss right now! A boss will appear while you and others battle.');
         const payload = await bossView.render(doc);
         const sent = await message.channel.send(payload);
         if (sent) bossView.scheduleInactive(sent, doc._id);

@@ -56,6 +56,9 @@ module.exports = {
             await displayBattle(event, setting, (embed, files) => message.channel.send({ embeds: [embed], files, allowedMentions: { parse: [] } }),
                 { title: `${userName(message.guild, message.author)} goes into battle!`, iconURL: message.author.displayAvatarURL?.({ extension: 'png', size: 64 }) });
 
+            // Boss muncul sendiri kalau sering battle (peluang kecil tiap battle)
+            if (message.guild) require('../boss/bossView').announce(message.channel, message.guild.id).catch((error) => console.error('[BOSS] announce failed:', error.message));
+
             const { crate } = await rewards;
             if (crate?.found) trackFor(message, 'crate');
             if (crate?.found) {
