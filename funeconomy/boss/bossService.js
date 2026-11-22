@@ -9,6 +9,7 @@ const { ANIMALS } = require('../zoo/data');
 const animalUtil = require('../battle/animalUtil');
 const animalClass = require('../battle/animalClass');
 const weaponDb = require('../battle/weaponDb');
+const WeaponInterface = require('../battle/WeaponInterface');
 const teamUtil = require('../battle/teamUtil');
 const crateDb = require('../battle/crateDb');
 const BattleEvent = require('../battle/battleEvent');
@@ -51,8 +52,9 @@ const refundTicket = (userId) => BossTicket.updateOne({ userId, used: { $gt: 0 }
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 function weaponDocFor(key) {
-    const ids = animalClass.weaponIdsFor(ANIMALS[key]);
-    const weapon = weaponDb.randomWeapon(ids.length ? pick(ids) : undefined);
+    const ids = animalClass.weaponIdsFor(ANIMALS[key]).filter((id) => WeaponInterface.weapons[Number(id) + WeaponInterface.BOSS_OFFSET]);
+    /* Boss selalu memakai weapon boss (id biasa + 100) */
+    const weapon = weaponDb.randomWeapon((ids.length ? pick(ids) : 1) + WeaponInterface.BOSS_OFFSET);
     return { wid: weapon.id, stat: weapon.qualities.slice(), passives: weapon.passives.map((p) => ({ id: p.id, stat: p.qualities.slice() })), wear: weapon.wear?.id || 0 };
 }
 
