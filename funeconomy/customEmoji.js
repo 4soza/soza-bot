@@ -126,6 +126,16 @@ try {
     }
 } catch { /* tanpa folder assets */ }
 
+// Weapon boss: assets/emoji/b<huruf rarity><nama>.png (c,u,r,e,m,l,f), mis. brshield = boss rare shield.
+const BOSS_LETTERS = ['c', 'u', 'r', 'e', 'm', 'l', 'f'];
+const BOSS_KEYS = new Set();
+try {
+    for (const file of fs.readdirSync(DIR)) {
+        const match = /^(b[curemlf])([a-z]+)\.png$/.exec(file);
+        if (match && !file.startsWith('boss_')) { DEFS[`${match[1]}${match[2]}`] = { fallback: '' }; BOSS_KEYS.add(match[2]); }
+    }
+} catch { /* tanpa folder assets */ }
+
 const live = new Map(); // key -> '<:nama:id>'
 
 const get = (key) => live.get(key) ?? DEFS[key]?.fallback ?? '';
@@ -151,6 +161,11 @@ const gearTiers = (kind, className, id) => {
     const byId = id != null ? GEAR_BY_ID[kind]?.get(Number(id)) : null;
     const base = `${kind}_${byId || String(className).toLowerCase()}`;
     const list = GEAR_RANKS.map((rank) => live.get(`${base}_${rank}`));
+    return list.every(Boolean) ? list : null;
+};
+/** 7 emoji weapon boss (b<huruf><nama>) menurut rank; null kalau belum lengkap. */
+const bossTiers = (key) => {
+    const list = BOSS_LETTERS.map((letter) => live.get(`b${letter}${key}`));
     return list.every(Boolean) ? list : null;
 };
 /** Emoji kustom buff menurut id buff; null kalau belum tersedia. */
@@ -259,4 +274,4 @@ function reset() { live.clear(); apply(); }
 /** id emoji kustom dari teks `<:nama:id>` (atau null untuk emoji Unicode). */
 const customId = (text) => /^<a?:\w+:(\d+)>$/.exec(String(text || ''))?.[1] || null;
 
-module.exports = { DEFS, get, gear, gearTiers, buff, robot, floot, flootShake, flootOpen, shard, essence, unknown, crate, crateShake, crateOpen, bossShock, bossTime, bossFighters, bossDefeated, bossStats, bossTicket, bossTicketUsed, bossCrate, bossCrateShake, bossCrateOpen, lootbox, lootboxShake, lootboxOpen, apply, sync, reset, customId, button };
+module.exports = { DEFS, get, gear, gearTiers, bossTiers, buff, robot, floot, flootShake, flootOpen, shard, essence, unknown, crate, crateShake, crateOpen, bossShock, bossTime, bossFighters, bossDefeated, bossStats, bossTicket, bossTicketUsed, bossCrate, bossCrateShake, bossCrateOpen, lootbox, lootboxShake, lootboxOpen, apply, sync, reset, customId, button };
