@@ -118,6 +118,7 @@ function describeWeapon(weapon, { footer } = {}) {
 	desc += `**Sell Value:** ${weapon.unsellable ? 'UNSELLABLE' : weaponDb.SELL_PRICES[weapon.rank.name]}\n`;
 	desc += `**Quality:** ${weapon.rank.emoji} ${weapon.avgQuality}%\n`;
 	desc += `**Wear:** \`${weapon.wearName?.toUpperCase()}\`\n`;
+	if (weapon.bossKey) desc += '**Type:** `BOSS`\n';
 	if (weapon.hasTakedownTracker) desc += `**Kills:** \`${Number(weapon.kills).toLocaleString('en-US')}\`\n`;
 	desc += `**WP Cost:** ${Math.ceil(weapon.manaCost)} ${WeaponInterface.wpEmoji}`;
 	desc += `\n**Description:** ${weapon.desc}\n`;

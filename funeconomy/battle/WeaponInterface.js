@@ -112,7 +112,13 @@ module.exports = class WeaponInterface {
 
 		/* Emoji kustom (assets/emoji/w_<nama>.png) menggantikan emoji bawaan kalau sudah diunggah */
 		const customEmoji = require('../customEmoji.js').gear('w', this.constructor.name, this.id);
-		if (customEmoji) {
+		const bossTiers = this.bossKey ? require('../customEmoji.js').bossTiers(this.bossKey) : null;
+		if (bossTiers) {
+			/* Weapon boss: latar pelangi + bingkai sesuai rarity (b<rank><nama>) */
+			this.emojis = bossTiers;
+			this.pristineEmojis = bossTiers;
+			this.defaultEmoji = bossTiers[2];
+		} else if (customEmoji) {
 			/* Bingkai berwarna sesuai rarity (w_<nama>_<rank>); kalau belum lengkap, satu emoji untuk semua rank */
 			const tiers = require('../customEmoji.js').gearTiers('w', this.constructor.name, this.id);
 			this.emojis = tiers || Array(7).fill(customEmoji);
@@ -174,12 +180,15 @@ module.exports = class WeaponInterface {
 	randomPassives(statOverride) {
 		let randPassives = [];
 		for (let i = 0; i < this.passiveCount; i++) {
-			let rand = Math.floor(Math.random() * this.availablePassives.length);
-			let passive = this.availablePassives[rand];
+			let pool = this.availablePassives;
+			/* Weapon boss: 2 passive selalu berbeda */
+			if (this.bossKey) pool = pool.filter((pid) => !randPassives.some((p) => String(p.id) === String(pid)));
+			let rand = Math.floor(Math.random() * pool.length);
+			let passive = pool[rand];
 			passive = passives[passive];
 			if (!passive)
 				throw (
-					'Could not get passive[' + this.availablePassives[rand] + '] for weapon[' + this.id + ']'
+					'Could not get passive[' + pool[rand] + '] for weapon[' + this.id + ']'
 				);
 			randPassives.push(new passive(null, null, { statOverride, wear: this.wear?.id }));
 		}
@@ -835,6 +844,12 @@ module.exports = class WeaponInterface {
 	static get mrEmoji() {
 		return require('../customEmoji.js').get('stat_mr');
 	}
+	static get bossKey() {
+		return new this(null, null, true).bossKey || null;
+	}
+	static get BOSS_OFFSET() {
+		return 100;
+	}
 	static get getID() {
 		return new this(null, null, true).id;
 	}
@@ -925,7 +940,32 @@ for (const passive of loadDir('passives')) passives[passive.getID] = passive;
 const buffs = {};
 for (const buff of loadDir('buffs')) if (!buff.disabled) buffs[buff.getID] = buff;
 const weapons = {};
+const weaponFiles = {};
 for (const weapon of loadDir('weapons')) weapons[weapon.getID] = weapon;
+for (const file of fs.readdirSync(path.join(__dirname, 'weapons')).filter((f) => f.endsWith('.js'))) {
+	const Class = require(path.join(__dirname, 'weapons', file));
+	weaponFiles[Class.getID] = file.slice(0, -3).toLowerCase();
+}
+/* Weapon boss: tiap weapon biasa punya versi boss (id + 100) dengan 2 passive. Tidak muncul di shop/random, hanya dari boss & boss crate. */
+const BOSS_OFFSET = 100;
+for (const id of Object.keys(weapons)) {
+	const Base = weapons[id];
+	if (Base.disabled) continue;
+	const probe = new Base(null, null, true);
+	if (!probe.passiveCount) continue;
+	const key = weaponFiles[id];
+	weapons[Number(id) + BOSS_OFFSET] = class extends Base {
+		init() {
+			super.init();
+			this.id = Number(id) + BOSS_OFFSET;
+			this.name = `Boss ${this.name}`;
+			this.passiveCount = 2;
+			this.disabled = true;
+			this.bossKey = key;
+			this.baseId = Number(id);
+		}
+	};
+}
 const wears = {};
 for (let key in wearInfo) {
 	let wear = wearInfo[key];

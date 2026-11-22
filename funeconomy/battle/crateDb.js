@@ -108,7 +108,7 @@ async function openBossCrates(userId, count) {
 	).lean();
 	if (!taken) return { error: 'none' };
 	const fresh = Array.from({ length: count }, () => {
-		const picks = Array.from({ length: 3 }, () => weaponDb.randomWeapon());
+		const picks = Array.from({ length: 3 }, () => weaponDb.randomBossWeapon());
 		return picks.reduce((best, w) => (w.avgQuality > best.avgQuality ? w : best));
 	});
 	try {

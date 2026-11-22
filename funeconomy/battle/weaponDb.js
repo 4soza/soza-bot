@@ -101,6 +101,13 @@ function randomWeapon(wid) {
 	return new WeaponClass();
 }
 
+/* Weapon boss acak (semua jenis yang punya versi boss) */
+function randomBossWeapon() {
+	const all = WeaponInterface.weapons;
+	const keys = Object.keys(all).filter((k) => all[k].bossKey);
+	return new all[keys[Math.floor(Math.random() * keys.length)]]();
+}
+
 /* Simpan senjata baru milik user. Return instance dengan ruwid/uwid terisi. */
 async function saveWeapon(userId, weapon) {
 	const uwid = await nextUwid();
@@ -306,7 +313,7 @@ async function weaponsForAnimals(userId, names) {
 
 module.exports = {
 	SELL_PRICES, SHARD_PRICES, RANK_NAMES, REROLL_PRICE, SORTS,
-	rankFromAlias, shortenUWID, expandUWID, parseWeapon, toDoc, nextUwid, randomWeapon, saveWeapon, saveWeapons,
+	rankFromAlias, shortenUWID, expandUWID, parseWeapon, toDoc, nextUwid, randomWeapon, randomBossWeapon, saveWeapon, saveWeapons,
 	getWeaponDoc, getWeapon, listWeapons, countByType, equip, unequip, setFavorite, addKills, rankBounds,
 	removeWeapon, removeRank, findRankWeapons, startReroll, pendingWeapon, confirmReroll, cancelReroll, weaponsForAnimals
 };
