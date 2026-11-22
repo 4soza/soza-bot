@@ -12,7 +12,8 @@ const CARD_W = 226;
 const CARD_H = 292;
 const GAP = 12;
 const PAD = 14;
-const RANK_COLOR = { common: '#9aa7b2', uncommon: '#4ade80', rare: '#60a5fa', epic: '#c084fc', mythical: '#f87171', legendary: '#fb923c', fabled: '#facc15' };
+// Warna bingkai sama dengan emoji weapon per rarity
+const RANK_COLOR = { common: '#c85857', uncommon: '#3eb2c7', rare: '#f2bc47', epic: '#5372ff', mythical: '#ac68ff', legendary: '#ffec47', fabled: '#88deff' };
 
 const fmt = (n) => Math.max(0, Math.round(Number(n) || 0)).toLocaleString('en-US');
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
@@ -25,6 +26,40 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.arcTo(x, y + h, x, y, r);
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
+}
+
+/* Bingkai ala weapon: garis tipis membulat + ornamen siku di empat sudut (bagian bawah dobel). */
+function drawFrame(ctx, x, y, w, h, color, r) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2.6;
+    roundRect(ctx, x, y, w, h, r);
+    ctx.stroke();
+    const u = 1.6; // skala ornamen (sudut kartu lebih besar dari emoji)
+    ctx.lineWidth = 1.4;
+    const corner = (sx, sy, dx, dy, double) => {
+        const px = sx + dx * 8 * u;
+        const py = sy + dy * 8 * u;
+        const line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+        line(px, py, px + dx * 12 * u, py);
+        line(px, py, px, py + dy * 12 * u);
+        line(px, py, px + dx * 8 * u, py + dy * 8 * u);
+        ctx.beginPath();
+        ctx.arc(px + dx * 9 * u, py + dy * 9 * u, 1.7 * u, 0, Math.PI * 2);
+        ctx.fill();
+        if (double) {
+            const qx = px + dx * 6 * u;
+            const qy = py + dy * 6 * u;
+            line(qx, qy, qx + dx * 10 * u, qy);
+            line(qx, qy, qx, qy + dy * 10 * u);
+        }
+    };
+    corner(x, y, 1, 1, false);
+    corner(x + w, y, -1, 1, false);
+    corner(x, y + h, 1, -1, true);
+    corner(x + w, y + h, -1, -1, true);
+    ctx.restore();
 }
 
 /* animals = hewan battle boss (dari bossService.buildAnimals, HP sudah sesuai database). Return Buffer PNG. */
@@ -63,9 +98,7 @@ async function renderBossCards(animals) {
         ctx.fillStyle = bg;
         roundRect(ctx, x, y, CARD_W, CARD_H, 14);
         ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = color;
-        ctx.stroke();
+        drawFrame(ctx, x, y, CARD_W, CARD_H, color, 14);
 
         // judul
         ctx.textAlign = 'center';
