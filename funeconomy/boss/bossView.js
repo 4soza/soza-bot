@@ -51,8 +51,8 @@ async function render(doc, { inactive = false } = {}) {
     }
 
     const won = doc.status === 'defeated';
-    const title = active ? 'A Guild Boss Appeared!' : (won ? 'Guild Boss Defeated!' : 'The Guild Boss ran away!');
-    const titleEmoji = won ? emojis.bossVictory() : emojis.bossShock();
+    const title = active ? 'A Guild Boss Appeared!' : (won ? 'Guild Boss Defeated!' : 'Guild Boss Ran Away!');
+    const titleEmoji = won ? emojis.bossVictory() : (active ? emojis.bossShock() : emojis.bossRan());
     const top = bossService.topDamage(doc, 10);
     const width = Math.max(6, ...top.map((e) => fmt(e.damage).length));
     const head = ['Rank', 'Damage', 'Username'].map((h) => `__**\`${h}\`**__`).join(' ');
@@ -67,11 +67,11 @@ async function render(doc, { inactive = false } = {}) {
         `⭐ **${fmt(r.xp)}** Experience`
     ].join('  •  ');
     const endUnix = Math.floor(doc.endsAt.getTime() / 1000);
-    const footer = `${emojis.bossTime()} ${active ? `runs away <t:${endUnix}:R>` : (won ? `defeated <t:${Math.floor(new Date(doc.updatedAt || Date.now()).getTime() / 1000)}:R>` : 'no longer here')}   ${emojis.bossFighters()} **${doc.fighters.length}** fighters   ${emojis.bossDefeated()} **${defeated}** defeated`;
+    const footer = `${emojis.bossTime()} ${active ? `runs away <t:${endUnix}:R>` : (won ? `defeated <t:${Math.floor(new Date(doc.updatedAt || Date.now()).getTime() / 1000)}:R>` : `expired <t:${endUnix}:R>`)}   ${emojis.bossFighters()} **${doc.fighters.length}** fighters   ${emojis.bossDefeated()} **${defeated}** defeated`;
 
     const container = {
         type: 17,
-        accent_color: inactive ? GREY : (won ? 0x00ff00 : COLOR),
+        accent_color: (inactive || (!active && !won)) ? GREY : (won ? 0x00ff00 : COLOR),
         components: [
             {
                 type: 9,
