@@ -50,7 +50,9 @@ async function render(doc, { inactive = false } = {}) {
         picture = text(animals.map((a) => `Lvl ${a.stats.lvl} **${cap(a.animal.rank)} ${a.animal.name}** — \`${fmt(Math.max(0, a.stats.hp[0]))}/${fmt(a.stats.hp[1] + a.stats.hp[3])} HP\``).join('\n'));
     }
 
-    const title = active ? 'A Guild Boss Appeared!' : (doc.status === 'defeated' ? 'The Guild Boss was defeated!' : 'The Guild Boss ran away!');
+    const won = doc.status === 'defeated';
+    const title = active ? 'A Guild Boss Appeared!' : (won ? 'Guild Boss Defeated!' : 'The Guild Boss ran away!');
+    const titleEmoji = won ? emojis.bossVictory() : emojis.bossShock();
     const top = bossService.topDamage(doc, 10);
     const width = Math.max(6, ...top.map((e) => fmt(e.damage).length));
     const head = ['Rank', 'Damage', 'Username'].map((h) => `__**\`${h}\`**__`).join(' ');
@@ -65,15 +67,15 @@ async function render(doc, { inactive = false } = {}) {
         `⭐ **${fmt(r.xp)}** Experience`
     ].join('  •  ');
     const endUnix = Math.floor(doc.endsAt.getTime() / 1000);
-    const footer = `${emojis.bossTime()} ${active ? `runs away <t:${endUnix}:R>` : 'no longer here'}   ${emojis.bossFighters()} **${doc.fighters.length}** fighters   ${emojis.bossDefeated()} **${defeated}** defeated`;
+    const footer = `${emojis.bossTime()} ${active ? `runs away <t:${endUnix}:R>` : (won ? `defeated <t:${Math.floor(new Date(doc.updatedAt || Date.now()).getTime() / 1000)}:R>` : 'no longer here')}   ${emojis.bossFighters()} **${doc.fighters.length}** fighters   ${emojis.bossDefeated()} **${defeated}** defeated`;
 
     const container = {
         type: 17,
-        accent_color: inactive ? GREY : COLOR,
+        accent_color: inactive ? GREY : (won ? 0x00ff00 : COLOR),
         components: [
             {
                 type: 9,
-                components: [text(`## ${emojis.bossShock()} ${title}`)],
+                components: [text(`## ${titleEmoji} ${title}`)],
                 accessory: btn({ style: 2, custom_id: `${BUTTON_PREFIX}:info:${doc._id}`, emoji: emojis.button(emojis.get('search')), disabled: inactive })
             },
             picture,
@@ -117,6 +119,28 @@ function scheduleInactive(message, bossId) {
         }
     }, Math.max(0, INACTIVE_MS - (Date.now() - message.createdTimestamp)));
     timer.unref?.();
+}
+
+/* Boss muncul sendiri setelah battle: kirim pesan "A Guild Boss Appeared!" ke channel dan simpan id pesannya. */
+async function announce(channel, guildId) {
+    const doc = await bossService.maybeSpawn(guildId);
+    if (!doc) return null;
+    const sent = await channel.send(await render(doc));
+    if (!sent) return null;
+    await GuildBoss.updateOne({ _id: doc._id }, { $set: { channelId: channel.id, messageId: sent.id } }).catch(() => {});
+    scheduleInactive(sent, doc._id);
+    // Satu jam tanpa dikalahkan: boss kabur, pesan diperbarui.
+    const timer = setTimeout(async () => {
+        try {
+            const fresh = await GuildBoss.findOneAndUpdate({ _id: doc._id, status: 'active' }, { $set: { status: 'fled' } }, { new: true })
+                || await GuildBoss.findById(doc._id);
+            if (fresh && fresh.status === 'fled') await sent.edit({ ...(await render(fresh, { inactive: true })), attachments: [] });
+        } catch (error) {
+            console.error('[BOSS] Could not update fled boss message:', error.message);
+        }
+    }, Math.max(0, doc.endsAt.getTime() - Date.now() + 1000));
+    timer.unref?.();
+    return sent;
 }
 
 /* Tombol halaman: ◀ n/N ▶ (ikon panah sama seperti daftar senjata). */
@@ -282,13 +306,6 @@ async function startFight(interaction, bossId, { confirmed = false, messageId = 
             return channel?.send({ content: `🚫 | **${name}**, the boss is no longer here!`, allowedMentions: { parse: [] } });
         }
         await refreshMessage(bossMessage, result.doc);
-        if (result.finished) {
-            const r = result.doc.rewards;
-            await channel.send({
-                content: `🎉 | **${name}** defeated the Guild Boss! **${result.rewardedCount}** fighters received ${emojis.shard()} **${fmt(r.shards)}**, ${emojis.crate()} **${r.crates}**, ${emojis.bossCrate()} **${r.bossCrates}** and ⭐ **${fmt(r.xp)}** xp. A new boss will appear with \`${cfg.PREFIX}boss\`!`,
-                allowedMentions: { parse: [] }
-            });
-        }
     } finally {
         running.delete(userId);
     }
@@ -321,4 +338,4 @@ async function handleButton(interaction) {
     }
 }
 
-module.exports = { BUTTON_PREFIX, render, refreshMessage, scheduleInactive, handleButton, ticketIcons };
+module.exports = { BUTTON_PREFIX, render, announce, refreshMessage, scheduleInactive, handleButton, ticketIcons };

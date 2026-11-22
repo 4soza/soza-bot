@@ -21,6 +21,7 @@ const CONFIG = {
     BASE_LEVEL: 10, // level boss pertama; naik 1 tiap boss dikalahkan (maks MAX_LEVEL)
     MAX_LEVEL: 60,
     TICKETS_PER_DAY: 3,
+    SPAWN_CHANCE: 0.1, // peluang boss muncul tiap battle (jika server belum punya boss aktif)
     SPAWN_RANKS: ['common', 'uncommon', 'rare', 'epic']
 };
 
@@ -98,6 +99,28 @@ async function spawn(guildId, now = Date.now()) {
     return GuildBoss.create({
         guildId, no: total + 1, level, animals, endsAt: new Date(now + CONFIG.STAY_MS), rewards: rewardsFor(level)
     });
+}
+
+/* Boss aktif server ini (belum kabur), atau null. Boss yang sudah lewat 1 jam ditandai kabur. */
+async function activeBoss(guildId, now = Date.now()) {
+    const boss = await GuildBoss.findOne({ guildId, status: 'active' });
+    if (boss && boss.endsAt.getTime() <= now) {
+        await GuildBoss.updateOne({ _id: boss._id, status: 'active' }, { $set: { status: 'fled' } });
+        return null;
+    }
+    return boss;
+}
+
+/* Dipanggil setelah battle: peluang kecil memunculkan boss baru. Return dokumen boss baru atau null. */
+async function maybeSpawn(guildId, { random = Math.random, now = Date.now() } = {}) {
+    if (random() >= CONFIG.SPAWN_CHANCE) return null;
+    if (await activeBoss(guildId, now)) return null;
+    try {
+        return await spawn(guildId, now);
+    } catch (error) {
+        if (error?.code === 11000) return null; // proses lain sudah memunculkan boss
+        throw error;
+    }
 }
 
 /* Boss aktif server ini; kalau belum ada (atau sudah kabur) muncul boss baru. */
@@ -188,5 +211,5 @@ async function fight({ bossId, userId, playerTeam, playerName }) {
 }
 
 module.exports = {
-    CONFIG, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
+    CONFIG, activeBoss, maybeSpawn, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
 };
