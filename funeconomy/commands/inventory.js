@@ -30,7 +30,13 @@ async function collectItems(userId) {
     }
     if (crate.bossbox > 0) items.push({ id: BOSS_CRATE_ID, emoji: emojis.bossCrate(), count: crate.bossbox });
     if (crate.boxcount > 0) items.push({ id: CRATE_ID, emoji: emojis.crate(), count: crate.boxcount });
+    // Weapon boss digabung dengan weapon biasa yang sama (satu item, gambar sama).
+    const merged = new Map();
     for (const { wid, count } of byType) {
+        const base = wid > WeaponInterface.BOSS_OFFSET ? wid - WeaponInterface.BOSS_OFFSET : wid;
+        merged.set(base, (merged.get(base) || 0) + count);
+    }
+    for (const [wid, count] of merged) {
         const WeaponClass = WeaponInterface.weapons[wid];
         if (WeaponClass && count > 0) {
             // Ikon tanpa bingkai (wi_) kalau ada, lalu ikon biasa (w_), lalu emoji bawaan.
