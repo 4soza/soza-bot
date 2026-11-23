@@ -23,8 +23,8 @@ module.exports = {
         cash: 5000,
         daily: 5000,
         // Hunt, zoo, dan battle (gaya OwO)
-        hunt: 15000,
-        battle: 15000,
+        hunt: 10000,
+        battle: 10000,
         boss: 15000,
         bossticket: 15000,
         zoo: 5000,
