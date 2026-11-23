@@ -14,6 +14,7 @@ const guildBossSchema = new mongoose.Schema({
     no: { type: Number, default: 1 },
     level: { type: Number, default: 10 },
     status: { type: String, enum: ['active', 'defeated', 'fled'], default: 'active' },
+    announcedAt: { type: Date, default: null }, // kapan pesan boss ditampilkan (otomatis / sboss); dipakai untuk jeda 3 jam
     channelId: { type: String, default: null },
     messageId: { type: String, default: null },
     spawnedAt: { type: Date, default: Date.now },
