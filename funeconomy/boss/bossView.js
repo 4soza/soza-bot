@@ -34,7 +34,7 @@ function ticketIcons(left) {
 }
 
 /* Isi pesan boss: { components, files, flags }. */
-async function render(doc, { inactive = false } = {}) {
+async function render(doc, { inactive = false, gone = false } = {}) {
     const active = doc.status === 'active' && doc.endsAt.getTime() > Date.now();
     const animals = bossService.buildAnimals(doc);
     const defeated = await bossService.defeatedCount(doc.guildId);
@@ -51,8 +51,9 @@ async function render(doc, { inactive = false } = {}) {
     }
 
     const won = doc.status === 'defeated';
-    const title = active ? 'A Guild Boss Appeared!' : (won ? 'Guild Boss Defeated!' : 'Guild Boss Ran Away!');
-    const titleEmoji = won ? emojis.bossVictory() : (active ? emojis.bossShock() : emojis.bossRan());
+    // gone = boss sudah dikalahkan lalu dilihat lagi lewat sboss: judul "no longer available", abu-abu
+    const title = active ? 'A Guild Boss Appeared!' : (won ? (gone ? 'This boss is no longer available!' : 'Guild Boss Defeated!') : 'Guild Boss Ran Away!');
+    const titleEmoji = won ? (gone ? '' : emojis.bossVictory()) : (active ? emojis.bossShock() : emojis.bossRan());
     const top = bossService.topDamage(doc, 10);
     const width = Math.max(6, ...top.map((e) => fmt(e.damage).length));
     const head = ['Rank', 'Damage', 'Username'].map((h) => `__**\`${h}\`**__`).join(' ');
@@ -71,11 +72,11 @@ async function render(doc, { inactive = false } = {}) {
 
     const container = {
         type: 17,
-        accent_color: (inactive || (!active && !won)) ? GREY : (won ? 0x00ff00 : COLOR),
+        accent_color: (inactive || gone || (!active && !won)) ? GREY : (won ? 0x00ff00 : COLOR),
         components: [
             {
                 type: 9,
-                components: [text(`## ${titleEmoji} ${title}`)],
+                components: [text(`## ${titleEmoji ? `${titleEmoji} ` : ''}${title}`)],
                 accessory: btn({ style: 2, custom_id: `${BUTTON_PREFIX}:info:${doc._id}`, emoji: emojis.button(emojis.get('search')), disabled: inactive })
             },
             picture,
@@ -148,16 +149,18 @@ async function announce(channel, guildId) {
     return sent;
 }
 
-/* sboss: tampilkan boss aktif, atau munculkan boss baru kalau belum ada. Hitungan 3 jam pesan otomatis diulang dari sini. */
+/* sboss: tampilkan boss terakhir server ini; boss baru hanya muncul sendiri saat battle (kecuali sboss pertama di server tanpa boss sama sekali).
+   Aktif = tampil normal; kabur = "Guild Boss Ran Away!"; sudah dikalahkan = "This boss is no longer available!". */
 async function present(channel, guildId) {
-    const before = await bossService.activeBoss(guildId);
-    const doc = before || await bossService.currentBoss(guildId);
-    bossService.touchAuto(guildId);
+    let doc = await bossService.latestBoss(guildId);
+    // Server yang belum pernah punya boss: sboss pertama memunculkan boss sebagai permulaan (hanya sekali).
+    const first = !doc;
+    if (first) doc = await bossService.currentBoss(guildId);
     if (!doc) return null;
-    const sent = await channel.send(await render(doc));
+    const sent = await channel.send(await render(doc, { gone: doc.status === 'defeated' }));
     if (!sent) return null;
-    if (before) scheduleInactive(sent, doc._id);
-    else await track(channel, sent, doc);
+    if (first) await track(channel, sent, doc);
+    else if (doc.status === 'active') scheduleInactive(sent, doc._id);
     return sent;
 }
 

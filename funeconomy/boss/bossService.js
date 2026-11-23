@@ -111,18 +111,26 @@ async function activeBoss(guildId, now = Date.now()) {
     return boss;
 }
 
-/* Waktu terakhir sboss diketik per server: mengulang hitungan 3 jam pesan boss otomatis. */
-const touched = new Map();
-const touchAuto = (guildId, now = Date.now()) => touched.set(guildId, now);
+/* Boss terakhir server ini (aktif, kabur, atau sudah dikalahkan). Boss aktif yang lewat 1 jam ditandai kabur. */
+async function latestBoss(guildId, now = Date.now()) {
+    const boss = await GuildBoss.findOne({ guildId }).sort({ spawnedAt: -1 });
+    if (boss && boss.status === 'active' && boss.endsAt.getTime() <= now) {
+        boss.status = 'fled';
+        await GuildBoss.updateOne({ _id: boss._id, status: 'active' }, { $set: { status: 'fled' } });
+    }
+    return boss;
+}
 
 /* Dipanggil setelah battle: peluang kecil memunculkan boss baru. Return dokumen boss baru atau null. */
 async function maybeSpawn(guildId, { random = Math.random, now = Date.now() } = {}) {
     if (random() >= CONFIG.SPAWN_CHANCE) return null;
-    // Pesan boss muncul sendiri paling cepat 3 jam sekali (dihitung dari boss terakhir atau dari terakhir kali sboss diketik)
-    const last = await GuildBoss.findOne({ guildId }).sort({ spawnedAt: -1 }).select('spawnedAt').lean();
-    const lastAt = Math.max(last?.spawnedAt ? new Date(last.spawnedAt).getTime() : 0, touched.get(guildId) || 0);
-    if (now - lastAt < CONFIG.AUTO_COOLDOWN_MS) return null;
-    if (await activeBoss(guildId, now)) return null;
+    // Boss baru baru boleh muncul 1 jam setelah boss sebelumnya selesai (kalah = saat dikalahkan, kabur = saat waktunya habis)
+    const last = await latestBoss(guildId, now);
+    if (last && last.status === 'active') return null;
+    if (last) {
+        const endedAt = last.status === 'defeated' ? new Date(last.updatedAt || last.endsAt).getTime() : last.endsAt.getTime();
+        if (now - endedAt < CONFIG.RESPAWN_COOLDOWN_MS) return null;
+    }
     try {
         return await spawn(guildId, now);
     } catch (error) {
@@ -219,5 +227,5 @@ async function fight({ bossId, userId, playerTeam, playerName }) {
 }
 
 module.exports = {
-    CONFIG, activeBoss, maybeSpawn, touchAuto, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
+    CONFIG, activeBoss, latestBoss, maybeSpawn, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
 };
