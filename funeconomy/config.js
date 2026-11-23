@@ -26,6 +26,7 @@ module.exports = {
         hunt: 15000,
         battle: 15000,
         boss: 15000,
+        bossticket: 15000,
         zoo: 5000,
         sell: 5000,
         sacrifice: 5000,
