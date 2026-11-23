@@ -28,37 +28,28 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
-/* Bingkai ala weapon: garis tipis membulat + ornamen siku di empat sudut (bagian bawah dobel). */
-function drawFrame(ctx, x, y, w, h, color, r) {
+/* Bingkai kartu: gambar per rarity di assets/boss/frame_<rarity>.png (ukuran kartu x2, sama dengan SCALE). */
+const path = require('path');
+const frameCache = new Map();
+async function loadFrame(rank) {
+    if (frameCache.has(rank)) return frameCache.get(rank);
+    let img = null;
+    try { img = await canvasLib().loadImage(path.join(__dirname, '..', '..', 'assets', 'boss', `frame_${rank}.png`)); } catch { img = null; }
+    frameCache.set(rank, img);
+    return img;
+}
+function drawFrame(ctx, x, y, w, h, color, img) {
+    if (img) {
+        const smooth = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, x, y, w, h);
+        ctx.imageSmoothingEnabled = smooth;
+        return;
+    }
     ctx.save();
     ctx.strokeStyle = color;
-    ctx.fillStyle = color;
     ctx.lineWidth = 2.6;
-    roundRect(ctx, x, y, w, h, r);
-    ctx.stroke();
-    const u = 1.6; // skala ornamen (sudut kartu lebih besar dari emoji)
-    ctx.lineWidth = 1.4;
-    const corner = (sx, sy, dx, dy, double) => {
-        const px = sx + dx * 8 * u;
-        const py = sy + dy * 8 * u;
-        const line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
-        line(px, py, px + dx * 12 * u, py);
-        line(px, py, px, py + dy * 12 * u);
-        line(px, py, px + dx * 8 * u, py + dy * 8 * u);
-        ctx.beginPath();
-        ctx.arc(px + dx * 9 * u, py + dy * 9 * u, 1.7 * u, 0, Math.PI * 2);
-        ctx.fill();
-        if (double) {
-            const qx = px + dx * 6 * u;
-            const qy = py + dy * 6 * u;
-            line(qx, qy, qx + dx * 10 * u, qy);
-            line(qx, qy, qx, qy + dy * 10 * u);
-        }
-    };
-    corner(x, y, 1, 1, false);
-    corner(x + w, y, -1, 1, false);
-    corner(x, y + h, 1, -1, true);
-    corner(x + w, y + h, -1, -1, true);
+    ctx.strokeRect(x, y, w, h);
     ctx.restore();
 }
 
@@ -77,6 +68,7 @@ async function renderBossCards(animals) {
     const STAT_ICON = { hp: emojis.get('stat_hp'), wp: emojis.get('stat_wp'), str: emojis.get('stat_str'), mag: emojis.get('stat_mag'), pr: emojis.get('stat_pr'), mr: emojis.get('stat_mr') };
     Object.values(STAT_ICON).forEach((e) => wanted.add(e));
     const images = new Map(await Promise.all([...wanted].map(async (e) => [e, await loadEmoji(e)])));
+    const frames = new Map(await Promise.all([...new Set(animals.map((a) => a.animal.rank))].map(async (r) => [r, await loadFrame(r)])));
 
     const canvas = createCanvas(W * SCALE, H * SCALE);
     const ctx = canvas.getContext('2d');
@@ -96,9 +88,8 @@ async function renderBossCards(animals) {
         bg.addColorStop(0, '#16394f');
         bg.addColorStop(1, '#0c2230');
         ctx.fillStyle = bg;
-        roundRect(ctx, x, y, CARD_W, CARD_H, 14);
-        ctx.fill();
-        drawFrame(ctx, x, y, CARD_W, CARD_H, color, 14);
+        ctx.fillRect(x, y, CARD_W, CARD_H);
+        drawFrame(ctx, x, y, CARD_W, CARD_H, color, frames.get(a.animal.rank));
 
         // judul
         ctx.textAlign = 'center';
@@ -155,8 +146,7 @@ async function renderBossCards(animals) {
 
         if (dead) {
             ctx.fillStyle = 'rgba(0,0,0,0.62)';
-            roundRect(ctx, x, y, CARD_W, CARD_H, 14);
-            ctx.fill();
+            ctx.fillRect(x, y, CARD_W, CARD_H);
             ctx.textAlign = 'center';
             ctx.fillStyle = '#ff6b6b';
             ctx.font = font(22, 'bold');
