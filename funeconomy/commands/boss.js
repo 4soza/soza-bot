@@ -2,6 +2,7 @@ const bossService = require('../boss/bossService');
 const bossView = require('../boss/bossView');
 const crateDb = require('../battle/crateDb');
 const { fail } = require('../battle/commandUtil');
+const cooldown = require('../cooldown');
 const { onCooldown, displayName } = require('../utils');
 
 // sboss = tampilkan guild boss terakhir; memunculkan boss baru kalau belum pernah ada boss atau boss terakhir sudah dikalahkan 5+ menit lalu. sboss t = cek tiket.
@@ -12,6 +13,7 @@ module.exports = {
     async execute(message, args = []) {
         if (!message.guild) return fail(message, 'this command only works in a server!');
         if (onCooldown(message, 'boss')) return;
+        cooldown.start('boss', message.author.id);
 
         if (['t', 'ticket', 'tickets'].includes(String(args[0] || '').toLowerCase())) {
             const max = bossService.CONFIG.TICKETS_PER_DAY;
