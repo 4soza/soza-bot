@@ -4,7 +4,7 @@ const crateDb = require('../battle/crateDb');
 const { fail } = require('../battle/commandUtil');
 const { onCooldown, displayName } = require('../utils');
 
-// sboss = tampilkan guild boss terakhir (aktif / kabur / sudah dikalahkan), memunculkan boss hanya kalau server belum pernah punya boss. sboss t = cek tiket.
+// sboss = tampilkan guild boss terakhir; memunculkan boss baru kalau belum pernah ada boss atau boss terakhir sudah dikalahkan 5+ menit lalu. sboss t = cek tiket.
 // Boss muncul sendiri saat battle (10%, setelah jeda 1 jam dari boss sebelumnya) dan kabur kalau tidak dilawan dalam 1 jam.
 module.exports = {
     name: 'boss',
