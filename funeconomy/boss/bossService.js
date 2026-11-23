@@ -122,23 +122,28 @@ async function latestBoss(guildId, now = Date.now()) {
     return boss;
 }
 
-/* Dipanggil setelah battle: peluang kecil memunculkan boss baru. Return dokumen boss baru atau null. */
+/* sboss: boleh memunculkan boss baru kalau boss terakhir sudah dikalahkan lebih dari DEFEAT_COOLDOWN_MS yang lalu. */
+const canSummonAfterDefeat = (last, now = Date.now()) =>
+    !!last && last.status === 'defeated' && now - new Date(last.updatedAt || last.endsAt).getTime() >= CONFIG.DEFEAT_COOLDOWN_MS;
+
+/* Dipanggil setelah battle: peluang kecil boss jadi siap. Return { doc, announce } atau null.
+   announce = true hanya kalau pesan boss otomatis terakhir sudah lewat 3 jam; kalau tidak, boss siap tanpa pesan (cek lewat sboss). */
 async function maybeSpawn(guildId, { random = Math.random, now = Date.now() } = {}) {
     if (random() >= CONFIG.SPAWN_CHANCE) return null;
-    // Boss baru boleh muncul 5 menit setelah boss dikalahkan, atau 1 jam setelah boss kabur (waktunya habis)
     const last = await latestBoss(guildId, now);
     if (last && last.status === 'active') return null;
-    if (last) {
-        const endedAt = last.status === 'defeated' ? new Date(last.updatedAt || last.endsAt).getTime() : last.endsAt.getTime();
-        const wait = last.status === 'defeated' ? CONFIG.DEFEAT_COOLDOWN_MS : CONFIG.RESPAWN_COOLDOWN_MS;
-        if (now - endedAt < wait) return null;
-    }
+    if (last && last.status === 'defeated' && !canSummonAfterDefeat(last, now)) return null;
+    let doc;
     try {
-        return await spawn(guildId, now);
+        doc = await spawn(guildId, now);
     } catch (error) {
         if (error?.code === 11000) return null; // proses lain sudah memunculkan boss
         throw error;
     }
+    const lastShown = await GuildBoss.findOne({ guildId, announcedAt: { $ne: null } }).sort({ announcedAt: -1 }).select('announcedAt').lean();
+    const announce = !lastShown || now - new Date(lastShown.announcedAt).getTime() >= CONFIG.AUTO_COOLDOWN_MS;
+    if (announce) await GuildBoss.updateOne({ _id: doc._id }, { $set: { announcedAt: new Date(now) } });
+    return { doc, announce };
 }
 
 /* Boss aktif server ini; kalau belum ada (atau sudah kabur) muncul boss baru. */
@@ -229,5 +234,5 @@ async function fight({ bossId, userId, playerTeam, playerName }) {
 }
 
 module.exports = {
-    CONFIG, activeBoss, latestBoss, maybeSpawn, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
+    CONFIG, activeBoss, latestBoss, canSummonAfterDefeat, maybeSpawn, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
 };

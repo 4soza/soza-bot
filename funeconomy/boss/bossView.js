@@ -125,7 +125,7 @@ function scheduleInactive(message, bossId) {
 /* Boss muncul sendiri setelah battle: kirim pesan "A Guild Boss Appeared!" ke channel dan simpan id pesannya. */
 /* Simpan id pesan boss dan jadwalkan pembaruan pesan saat boss kabur (1 jam tanpa dikalahkan). */
 async function track(channel, sent, doc) {
-    await GuildBoss.updateOne({ _id: doc._id }, { $set: { channelId: channel.id, messageId: sent.id } }).catch(() => {});
+    await GuildBoss.updateOne({ _id: doc._id }, { $set: { channelId: channel.id, messageId: sent.id, announcedAt: new Date() } }).catch(() => {});
     scheduleInactive(sent, doc._id);
     const timer = setTimeout(async () => {
         try {
@@ -141,20 +141,21 @@ async function track(channel, sent, doc) {
 
 /* Boss muncul sendiri setelah battle (peluang 10%, paling cepat 3 jam sekali). */
 async function announce(channel, guildId) {
-    const doc = await bossService.maybeSpawn(guildId);
-    if (!doc) return null;
+    const result = await bossService.maybeSpawn(guildId);
+    if (!result || !result.announce) return null; // boss siap tanpa pesan (jeda 3 jam): dicek lewat sboss
+    const { doc } = result;
     const sent = await channel.send(await render(doc));
     if (!sent) return null;
     await track(channel, sent, doc);
     return sent;
 }
 
-/* sboss: tampilkan boss terakhir server ini; boss baru hanya muncul sendiri saat battle (kecuali sboss pertama di server tanpa boss sama sekali).
+/* sboss: tampilkan boss terakhir server ini. Boss baru muncul lewat sboss hanya kalau belum pernah ada boss atau boss terakhir sudah dikalahkan 5+ menit lalu; kalau boss kabur, boss baru hanya muncul sendiri saat battle (jeda 3 jam).
    Aktif = tampil normal; kabur = "Guild Boss Ran Away!"; sudah dikalahkan = "This boss is no longer available!". */
 async function present(channel, guildId) {
     let doc = await bossService.latestBoss(guildId);
-    // Server yang belum pernah punya boss: sboss pertama memunculkan boss sebagai permulaan (hanya sekali).
-    const first = !doc;
+    // sboss memunculkan boss baru hanya kalau server belum pernah punya boss, atau boss terakhir sudah dikalahkan 5+ menit lalu.
+    const first = !doc || bossService.canSummonAfterDefeat(doc);
     if (first) doc = await bossService.currentBoss(guildId);
     if (!doc) return null;
     const sent = await channel.send(await render(doc, { gone: doc.status === 'defeated' }));
