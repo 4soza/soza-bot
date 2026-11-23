@@ -138,7 +138,7 @@ async function renderBossCards(animals) {
             ctx.fillText(value, sx + 22, sy);
         };
         const sx = x + 18;
-        stat('hp', fmt(hpMax), sx, y + 198);
+        stat('hp', fmt(a.baseHp ?? hpMax), sx, y + 198);
         stat('wp', fmt(s.wp[1] + s.wp[3]), sx + 100, y + 198);
         stat('str', fmt(s.att[0] + s.att[1]), sx, y + 218);
         stat('mag', fmt(s.mag[0] + s.mag[1]), sx + 100, y + 218);

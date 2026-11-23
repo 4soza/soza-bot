@@ -122,14 +122,10 @@ function scheduleInactive(message, bossId) {
 }
 
 /* Boss muncul sendiri setelah battle: kirim pesan "A Guild Boss Appeared!" ke channel dan simpan id pesannya. */
-async function announce(channel, guildId) {
-    const doc = await bossService.maybeSpawn(guildId);
-    if (!doc) return null;
-    const sent = await channel.send(await render(doc));
-    if (!sent) return null;
+/* Simpan id pesan boss dan jadwalkan pembaruan pesan saat boss kabur (1 jam tanpa dikalahkan). */
+async function track(channel, sent, doc) {
     await GuildBoss.updateOne({ _id: doc._id }, { $set: { channelId: channel.id, messageId: sent.id } }).catch(() => {});
     scheduleInactive(sent, doc._id);
-    // Satu jam tanpa dikalahkan: boss kabur, pesan diperbarui.
     const timer = setTimeout(async () => {
         try {
             const fresh = await GuildBoss.findOneAndUpdate({ _id: doc._id, status: 'active' }, { $set: { status: 'fled' } }, { new: true })
@@ -140,6 +136,28 @@ async function announce(channel, guildId) {
         }
     }, Math.max(0, doc.endsAt.getTime() - Date.now() + 1000));
     timer.unref?.();
+}
+
+/* Boss muncul sendiri setelah battle (peluang 10%, paling cepat 3 jam sekali). */
+async function announce(channel, guildId) {
+    const doc = await bossService.maybeSpawn(guildId);
+    if (!doc) return null;
+    const sent = await channel.send(await render(doc));
+    if (!sent) return null;
+    await track(channel, sent, doc);
+    return sent;
+}
+
+/* sboss: tampilkan boss aktif, atau munculkan boss baru kalau belum ada. Hitungan 3 jam pesan otomatis diulang dari sini. */
+async function present(channel, guildId) {
+    const before = await bossService.activeBoss(guildId);
+    const doc = before || await bossService.currentBoss(guildId);
+    bossService.touchAuto(guildId);
+    if (!doc) return null;
+    const sent = await channel.send(await render(doc));
+    if (!sent) return null;
+    if (before) scheduleInactive(sent, doc._id);
+    else await track(channel, sent, doc);
     return sent;
 }
 
@@ -171,7 +189,7 @@ async function showInfo(interaction, bossId, index = 0, update = false) {
     const i = (k) => emojis.get(`stat_${k}`);
     const pct = (v) => WeaponInterface.resToPrettyPercent(v);
     const statRow = [
-        [i('hp'), fmt(s.hp[1] + s.hp[3])], [i('wp'), fmt(s.wp[1] + s.wp[3])], [i('str'), fmt(s.att[0] + s.att[1])],
+        [i('hp'), fmt(a.baseHp ?? (s.hp[1] + s.hp[3]))], [i('wp'), fmt(s.wp[1] + s.wp[3])], [i('str'), fmt(s.att[0] + s.att[1])],
         [i('pr'), pct(s.pr)], [i('mag'), fmt(s.mag[0] + s.mag[1])], [i('mr'), pct(s.mr)]
     ].map(([e, v]) => `${e} \`${v}\``).join(' ');
 
@@ -338,4 +356,4 @@ async function handleButton(interaction) {
     }
 }
 
-module.exports = { BUTTON_PREFIX, render, announce, refreshMessage, scheduleInactive, handleButton, ticketIcons };
+module.exports = { BUTTON_PREFIX, render, announce, present, refreshMessage, scheduleInactive, handleButton, ticketIcons };

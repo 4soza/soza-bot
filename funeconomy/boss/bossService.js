@@ -111,9 +111,17 @@ async function activeBoss(guildId, now = Date.now()) {
     return boss;
 }
 
+/* Waktu terakhir sboss diketik per server: mengulang hitungan 3 jam pesan boss otomatis. */
+const touched = new Map();
+const touchAuto = (guildId, now = Date.now()) => touched.set(guildId, now);
+
 /* Dipanggil setelah battle: peluang kecil memunculkan boss baru. Return dokumen boss baru atau null. */
 async function maybeSpawn(guildId, { random = Math.random, now = Date.now() } = {}) {
     if (random() >= CONFIG.SPAWN_CHANCE) return null;
+    // Pesan boss muncul sendiri paling cepat 3 jam sekali (dihitung dari boss terakhir atau dari terakhir kali sboss diketik)
+    const last = await GuildBoss.findOne({ guildId }).sort({ spawnedAt: -1 }).select('spawnedAt').lean();
+    const lastAt = Math.max(last?.spawnedAt ? new Date(last.spawnedAt).getTime() : 0, touched.get(guildId) || 0);
+    if (now - lastAt < CONFIG.AUTO_COOLDOWN_MS) return null;
     if (await activeBoss(guildId, now)) return null;
     try {
         return await spawn(guildId, now);
@@ -211,5 +219,5 @@ async function fight({ bossId, userId, playerTeam, playerName }) {
 }
 
 module.exports = {
-    CONFIG, activeBoss, maybeSpawn, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
+    CONFIG, activeBoss, maybeSpawn, touchAuto, ticketsLeft, useTicket, refundTicket, currentBoss, defeatedCount, buildAnimals, topDamage, isAlive, fight, spawn
 };
