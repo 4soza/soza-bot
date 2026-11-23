@@ -4,8 +4,8 @@ const crateDb = require('../battle/crateDb');
 const { fail } = require('../battle/commandUtil');
 const { onCooldown, displayName } = require('../utils');
 
-// sboss = tampilkan guild boss aktif (atau munculkan baru) dan ulang hitungan 3 jam pesan boss otomatis. sboss t = cek tiket.
-// Pesan boss juga muncul sendiri setelah battle (10%, paling cepat 3 jam sekali); boss kabur kalau tidak dilawan dalam 1 jam.
+// sboss = tampilkan guild boss terakhir (aktif / kabur / sudah dikalahkan), memunculkan boss hanya kalau server belum pernah punya boss. sboss t = cek tiket.
+// Boss muncul sendiri saat battle (10%, setelah jeda 1 jam dari boss sebelumnya) dan kabur kalau tidak dilawan dalam 1 jam.
 module.exports = {
     name: 'boss',
     aliases: [],
@@ -27,6 +27,8 @@ module.exports = {
             });
         }
 
-        return bossView.present(message.channel, message.guild.id);
+        const sent = await bossView.present(message.channel, message.guild.id);
+        if (!sent) return fail(message, 'could not show the guild boss right now, try again!');
+        return sent;
     }
 };
