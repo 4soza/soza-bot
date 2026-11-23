@@ -22,6 +22,8 @@ const CONFIG = {
     MAX_LEVEL: 60,
     TICKETS_PER_DAY: 3,
     SPAWN_CHANCE: 0.1, // peluang boss muncul tiap battle (jika server belum punya boss aktif)
+    AUTO_COOLDOWN_MS: 60 * 60 * 1000, // jeda pesan boss otomatis (penawaran fight): 1 jam
+    DEFEAT_COOLDOWN_MS: 5 * 60 * 1000, // jeda boss baru setelah boss dikalahkan: 5 menit
     SPAWN_RANKS: ['common', 'uncommon', 'rare', 'epic']
 };
 
@@ -127,11 +129,22 @@ const canSummonAfterDefeat = (last, now = Date.now()) =>
     !!last && last.status === 'defeated' && now - new Date(last.updatedAt || last.endsAt).getTime() >= CONFIG.DEFEAT_COOLDOWN_MS;
 
 /* Dipanggil setelah battle: peluang kecil boss jadi siap. Return { doc, announce } atau null.
-   announce = true hanya kalau pesan boss otomatis terakhir sudah lewat 3 jam; kalau tidak, boss siap tanpa pesan (cek lewat sboss). */
+   announce = true (kirim pesan penawaran fight) hanya kalau pesan boss otomatis terakhir sudah lewat 1 jam; kalau tidak, boss siap tanpa pesan (cek lewat sboss).
+   Boss siap yang belum pernah diumumkan (muncul saat jeda) diumumkan di battle berikutnya setelah jeda lewat. */
 async function maybeSpawn(guildId, { random = Math.random, now = Date.now() } = {}) {
-    if (random() >= CONFIG.SPAWN_CHANCE) return null;
     const last = await latestBoss(guildId, now);
-    if (last && last.status === 'active') return null;
+    const lastShownAt = async () => {
+        const shown = await GuildBoss.findOne({ guildId, announcedAt: { $ne: null } }).sort({ announcedAt: -1 }).select('announcedAt').lean();
+        return shown ? new Date(shown.announcedAt).getTime() : null;
+    };
+    if (last && last.status === 'active') {
+        if (last.announcedAt) return null;
+        const shownAt = await lastShownAt();
+        if (shownAt !== null && now - shownAt < CONFIG.AUTO_COOLDOWN_MS) return null;
+        await GuildBoss.updateOne({ _id: last._id }, { $set: { announcedAt: new Date(now) } });
+        return { doc: last, announce: true };
+    }
+    if (random() >= CONFIG.SPAWN_CHANCE) return null;
     if (last && last.status === 'defeated' && !canSummonAfterDefeat(last, now)) return null;
     let doc;
     try {
@@ -140,8 +153,8 @@ async function maybeSpawn(guildId, { random = Math.random, now = Date.now() } = 
         if (error?.code === 11000) return null; // proses lain sudah memunculkan boss
         throw error;
     }
-    const lastShown = await GuildBoss.findOne({ guildId, announcedAt: { $ne: null } }).sort({ announcedAt: -1 }).select('announcedAt').lean();
-    const announce = !lastShown || now - new Date(lastShown.announcedAt).getTime() >= CONFIG.AUTO_COOLDOWN_MS;
+    const shownAt = await lastShownAt();
+    const announce = shownAt === null || now - shownAt >= CONFIG.AUTO_COOLDOWN_MS;
     if (announce) await GuildBoss.updateOne({ _id: doc._id }, { $set: { announcedAt: new Date(now) } });
     return { doc, announce };
 }

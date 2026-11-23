@@ -139,10 +139,10 @@ async function track(channel, sent, doc) {
     timer.unref?.();
 }
 
-/* Boss muncul sendiri setelah battle (peluang 10%, paling cepat 3 jam sekali). */
+/* Boss muncul sendiri setelah battle (peluang 10%, pesan penawaran paling cepat 1 jam sekali). */
 async function announce(channel, guildId) {
     const result = await bossService.maybeSpawn(guildId);
-    if (!result || !result.announce) return null; // boss siap tanpa pesan (jeda 3 jam): dicek lewat sboss
+    if (!result || !result.announce) return null; // boss siap tanpa pesan (jeda 1 jam): dicek lewat sboss
     const { doc } = result;
     const sent = await channel.send(await render(doc));
     if (!sent) return null;
@@ -150,7 +150,7 @@ async function announce(channel, guildId) {
     return sent;
 }
 
-/* sboss: tampilkan boss terakhir server ini. Boss baru muncul lewat sboss hanya kalau belum pernah ada boss atau boss terakhir sudah dikalahkan 5+ menit lalu; kalau boss kabur, boss baru hanya muncul sendiri saat battle (jeda 3 jam).
+/* sboss: tampilkan boss terakhir server ini. Boss baru muncul lewat sboss hanya kalau belum pernah ada boss atau boss terakhir sudah dikalahkan 5+ menit lalu; kalau boss kabur, boss baru hanya muncul sendiri saat battle (jeda 1 jam).
    Aktif = tampil normal; kabur = "Guild Boss Ran Away!"; sudah dikalahkan = "This boss is no longer available!". */
 async function present(channel, guildId) {
     let doc = await bossService.latestBoss(guildId);
