@@ -70,6 +70,7 @@ function buildAnimals(doc) {
         if (a.weapon) animal.weapon = weaponDb.parseWeapon(a.weapon);
         animalUtil.stats(animal);
         const s = animal.stats;
+        animal.baseHp = Math.round(s.hp[1] + s.hp[3]); // HP asli hewan untuk tampilan stat; bar HP boss memakai nilai yang sudah dikali
         for (const k of [1, 2, 3]) s.hp[k] *= CONFIG.HP_MULT;
         s.hp[0] = Math.max(0, Math.min(a.hp, s.hp[1] + s.hp[3]));
         return animal;
