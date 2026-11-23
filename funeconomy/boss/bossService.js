@@ -125,12 +125,13 @@ async function latestBoss(guildId, now = Date.now()) {
 /* Dipanggil setelah battle: peluang kecil memunculkan boss baru. Return dokumen boss baru atau null. */
 async function maybeSpawn(guildId, { random = Math.random, now = Date.now() } = {}) {
     if (random() >= CONFIG.SPAWN_CHANCE) return null;
-    // Boss baru baru boleh muncul 1 jam setelah boss sebelumnya selesai (kalah = saat dikalahkan, kabur = saat waktunya habis)
+    // Boss baru boleh muncul 5 menit setelah boss dikalahkan, atau 1 jam setelah boss kabur (waktunya habis)
     const last = await latestBoss(guildId, now);
     if (last && last.status === 'active') return null;
     if (last) {
         const endedAt = last.status === 'defeated' ? new Date(last.updatedAt || last.endsAt).getTime() : last.endsAt.getTime();
-        if (now - endedAt < CONFIG.RESPAWN_COOLDOWN_MS) return null;
+        const wait = last.status === 'defeated' ? CONFIG.DEFEAT_COOLDOWN_MS : CONFIG.RESPAWN_COOLDOWN_MS;
+        if (now - endedAt < wait) return null;
     }
     try {
         return await spawn(guildId, now);
