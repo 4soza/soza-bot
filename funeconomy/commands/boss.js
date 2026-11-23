@@ -12,22 +12,29 @@ module.exports = {
     aliases: [],
     async execute(message, args = []) {
         if (!message.guild) return fail(message, 'this command only works in a server!');
-        if (onCooldown(message, 'boss')) return;
-        cooldown.start('boss', message.author.id);
-
         if (['t', 'ticket', 'tickets'].includes(String(args[0] || '').toLowerCase())) {
+            if (onCooldown(message, 'bossticket')) return;
+            cooldown.start('bossticket', message.author.id);
             const max = bossService.CONFIG.TICKETS_PER_DAY;
             const left = await bossService.ticketsLeft(message.author.id);
             const resetUnix = Math.floor((Date.now() + crateDb.msUntilReset()) / 1000);
-            const icons = bossView.ticketIcons(left);
+            // Ikon tiket di komponen teks sendiri (hanya emoji) supaya tampil besar seperti OwO
             return message.channel.send({
-                embeds: [{
-                    color: 0x7dbceb,
-                    description: `${icons}\n\n**${displayName(message)}**, you currently have **${left}/${max}** boss ticket${left === 1 ? '' : 's'}!\n-# Replenishes <t:${resetUnix}:R>`
+                flags: 32768,
+                components: [{
+                    type: 17,
+                    accent_color: 0x7dbceb,
+                    components: [
+                        { type: 10, content: bossView.ticketIcons(left) },
+                        { type: 10, content: `**${displayName(message)}**, you currently have **${left}/${max}** boss ticket${left === 1 ? '' : 's'}!\n-# Replenishes <t:${resetUnix}:R>` }
+                    ]
                 }],
                 allowedMentions: { parse: [] }
             });
         }
+
+        if (onCooldown(message, 'boss')) return;
+        cooldown.start('boss', message.author.id);
 
         const sent = await bossView.present(message.channel, message.guild.id);
         if (!sent) return fail(message, 'could not show the guild boss right now, try again!');
