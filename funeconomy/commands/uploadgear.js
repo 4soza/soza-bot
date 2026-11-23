@@ -9,6 +9,14 @@ const emojis = require('../customEmoji');
 //   suploadgear replace    -> hapus lalu unggah ulang yang sudah ada
 // Setelah selesai, emoji langsung dipakai (tanpa restart). File ini dan gearEmojiData.json boleh dihapus dari repo.
 const DATA_FILE = path.join(__dirname, '..', 'gearEmojiData.json');
+const EMOJI_DIR = path.join(__dirname, '..', '..', 'assets', 'emoji');
+
+// Emoji weapon boss (b<c|u|r|e|m|l|f><nama>.png) dibaca langsung dari assets/emoji.
+function bossFiles() {
+    try {
+        return fs.readdirSync(EMOJI_DIR).filter((f) => /^b[curemlf][a-z]+\.png$/.test(f) && f !== 'blank_box.png' && !f.startsWith('boss_'));
+    } catch { return []; }
+}
 
 module.exports = {
     name: 'uploadgear',
@@ -23,8 +31,9 @@ module.exports = {
         }
         const replace = String(args[0] || '').toLowerCase() === 'replace';
         const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-        const names = Object.keys(data);
-        const status = await message.reply({ content: `Mengunggah ${names.length} emoji weapon/passive...`, allowedMentions: { repliedUser: false } });
+        const bosses = bossFiles();
+        const names = [...Object.keys(data), ...bosses.map((f) => f.slice(0, -4))];
+        const status = await message.reply({ content: `Mengunggah ${names.length} emoji weapon/passive/weapon boss...`, allowedMentions: { repliedUser: false } });
 
         await client.application.emojis.fetch();
         let uploaded = 0;
@@ -39,14 +48,17 @@ module.exports = {
                         await client.application.emojis.delete(existing.id);
                         client.application.emojis.cache.delete(existing.id);
                     }
-                    await client.application.emojis.create({ attachment: `data:image/png;base64,${data[name]}`, name });
+                    const attachment = data[name]
+                        ? `data:image/png;base64,${data[name]}`
+                        : fs.readFileSync(path.join(EMOJI_DIR, `${name}.png`));
+                    await client.application.emojis.create({ attachment, name });
                     uploaded += 1;
                 }
             } catch (error) {
                 failed.push(`${name}: ${error.message}`);
             }
             if ((index + 1) % 20 === 0 && index + 1 < names.length) {
-                await status.edit(`Mengunggah emoji weapon/passive... ${index + 1}/${names.length}`).catch(() => {});
+                await status.edit(`Mengunggah emoji... ${index + 1}/${names.length}`).catch(() => {});
             }
         }
         // Pasang emoji yang baru diunggah supaya langsung dipakai tanpa restart.
