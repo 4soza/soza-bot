@@ -64,7 +64,7 @@ const PASSIVE_NAMES = ['Absolve', 'Critical', 'Discharge', 'Energize', 'Enrage',
     'Lifesteal', 'Magic', 'MagicResist', 'Manatap', 'PhysicalResist', 'Regeneration', 'Sacrifice', 'Safeguard', 'Snail',
     'Sprout', 'Strength', 'Thorns', 'WeaponPoint',
     // passive baru (khusus bot ini)
-    'DoubleStrike', 'Execute', 'Photosynthesis', 'Ferocity', 'Sharpness', 'GiantSlayer', 'FrostArmor', 'Lifebloom'];
+    'DoubleStrike', 'Execute', 'Photosynthesis', 'Ferocity', 'Sharpness', 'GiantSlayer', 'FrostArmor', 'Lifebloom', 'Resonance'];
 for (const name of WEAPON_NAMES) DEFS[`w_${name.toLowerCase()}`] = { fallback: '' };
 for (const name of PASSIVE_NAMES) DEFS[`p_${name.toLowerCase()}`] = { fallback: '' };
 // Versi berbingkai warna rarity: w_<nama>_<rank> dan p_<nama>_<rank> (urutan sama dengan WeaponInterface.ranks).
