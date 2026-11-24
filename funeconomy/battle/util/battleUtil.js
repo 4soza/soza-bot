@@ -11,11 +11,11 @@ exports.attack = attack;
 const weapon = '🗡';
 exports.weapon = weapon;
 
-/* Double Strike (passive kelas Rend): peluang menyerang sekali lagi dengan efektivitas dan biaya WP lebih kecil */
+/* Double Strike (passive kelas DoubleStrike): peluang menyerang sekali lagi dengan efektivitas dan biaya WP lebih kecil */
 function doubleStrike(animal, team, enemy) {
 	const w = animal.weapon;
 	if (!w || !w.passives || animal.stats.hp[0] <= 0) return;
-	const p = w.passives.find((x) => x.constructor.name === 'Rend');
+	const p = w.passives.find((x) => x.constructor.name === 'DoubleStrike');
 	if (!p || Math.random() * 100 >= p.stats[0]) return;
 	if (!WeaponInterface.getAlive(enemy).length) return;
 	const orig = { stats: w.stats, manaCost: w.manaCost };
