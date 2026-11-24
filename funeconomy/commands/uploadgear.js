@@ -39,8 +39,8 @@ module.exports = {
         let uploaded = 0;
         let skipped = 0;
         const failed = [];
-        // Passive Tide dan Frostbite lama diganti Frost Armor: hapus emoji lama (p_tide_*, p_frostbite_*, p_rend_*, p_wildfire_*) yang tersisa di bot.
-        for (const old of [...client.application.emojis.cache.values()].filter((e) => ['p_frostbite_', 'p_tide_', 'p_rend_', 'p_wildfire_'].some((prefix) => e.name?.startsWith(prefix)))) {
+        // Passive lama yang diganti (Tide, Frostbite, Rend, Wildfire, Photosynthesis): hapus emoji lama yang tersisa di bot.
+        for (const old of [...client.application.emojis.cache.values()].filter((e) => ['p_frostbite_', 'p_tide_', 'p_rend_', 'p_wildfire_', 'p_photosynthesis_'].some((prefix) => e.name?.startsWith(prefix)))) {
             await client.application.emojis.delete(old.id).catch(() => {});
             client.application.emojis.cache.delete(old.id);
         }
