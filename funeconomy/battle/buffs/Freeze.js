@@ -16,6 +16,10 @@ module.exports = class Freeze extends BuffInterface {
 		this.qualityList = [];
 	}
 
+	static get emojiDefault() {
+		return require('../../customEmoji.js').buff(5) || '❄️';
+	}
+
 	canAttack(me, ally, enemy, action, result) {
 		// Freeze only works next turn
 		if (this.justCreated) return;
