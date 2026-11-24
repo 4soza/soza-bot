@@ -12,7 +12,7 @@ const WeaponInterface = require('../funeconomy/battle/WeaponInterface');
 
 const U = '100000000000000009';
 const NEW_WEAPONS = ['ConduitClaw', 'Crossbow', 'DruidStaff', 'EyeStaff', 'FrostStaff'];
-const NEW_PASSIVES = ['DoubleStrike', 'Execute', 'Photosynthesis', 'Ferocity', 'Sharpness', 'GiantSlayer', 'FrostArmor', 'Lifebloom', 'Resonance'];
+const NEW_PASSIVES = ['DoubleStrike', 'Execute', 'Adaptation', 'Ferocity', 'Sharpness', 'GiantSlayer', 'FrostArmor', 'Lifebloom', 'Resonance'];
 
 test('new weapons and passives have unique ids and an emoji image', () => {
     const wid = new Set(Object.keys(WeaponInterface.weapons));
