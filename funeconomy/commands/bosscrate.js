@@ -31,14 +31,43 @@ module.exports = {
         cooldown.start('bosscrate', userId);
 
         const head = count === 1 ? 'opens a boss weapon crate' : `opens ${count} boss weapon crates`;
-        const sent = await message.channel.send({ content: `${BLANK} | **${name}** ${head}\n${emojis.bossCrateShake()} | and finds...`, allowedMentions: { parse: [] } }).catch(() => null);
+        // Components V2 supaya tombol 🔍 tampil di samping teks (sama seperti scrate).
+        const V2 = 32768;
+        const lines = (t) => ({ type: 10, content: t });
+        const sent = await message.channel.send({ components: [lines(`${BLANK} | **${name}** ${head}\n${emojis.bossCrateShake()} | and finds...`)], flags: V2, allowedMentions: { parse: [] } }).catch(() => null);
         const [result] = await Promise.all([crateDb.openBossCrates(userId, count).catch(() => ({ error: 'fail' })), sleep(3000)]);
         if (!sent) return;
-        if (result.error) return sent.edit("🚫 | You don't have any boss weapon crates!").catch(() => {});
+        if (result.error) return sent.edit({ components: [lines("🚫 | You don't have any boss weapon crates!")], flags: V2 }).catch(() => {});
         const weapons = result.weapons.sort((a, b) => b.avgQuality - a.avgQuality);
         const body = count === 1
             ? `\`${weapons[0].uwid}\` ${weaponIcons(weapons[0])} ${weapons[0].avgQuality}%`
             : weapons.map((w) => w.emoji).join('');
-        return sent.edit({ content: `${BLANK} | **${name}** ${head}\n${emojis.bossCrateOpen()} | and finds ${count === 1 ? 'a ' : ': '}${body}`, allowedMentions: { parse: [] } }).catch(() => {});
+        const text2 = `${BLANK} | **${name}** ${head}\n${emojis.bossCrateOpen()} | and finds ${count === 1 ? 'a ' : ': '}${body}`;
+        // Tombol 🔍 membuka detail tiap senjata, urutan sama seperti daftar di pesan.
+        const view = (id, disabled = false) => ({
+            type: 9,
+            components: [lines(text2)],
+            accessory: { type: 2, style: 2, custom_id: `fbattle:cv:${userId}:${id}:0:open`, emoji: emojis.button(emojis.get('search')), disabled }
+        });
+        const expireButton = (msg) => {
+            const timer = setTimeout(async () => {
+                // Kalau 🔍 sudah diklik, pesan sudah berganti jadi detail senjata: jangan ditimpa.
+                const fresh = await msg.fetch().catch(() => null);
+                const id = fresh?.components?.[0]?.accessory?.customId || '';
+                if (id.startsWith('fbattle:cv:') && id.endsWith(':open')) msg.edit({ components: [view(msg.id, true)], flags: V2 }).catch(() => {});
+            }, crateDb.OPENED_TTL_MS);
+            timer.unref?.();
+        };
+        const ids = weapons.map((w) => w.ruwid);
+        const edited = await sent.edit({ components: [view(sent.id)], flags: V2, allowedMentions: { parse: [] } }).catch(() => null);
+        if (edited) { crateDb.rememberOpen(sent.id, userId, ids); expireButton(sent); }
+        else {
+            const fallback = await message.channel.send({ components: [view('0')], flags: V2, allowedMentions: { parse: [] } }).catch(() => null);
+            if (fallback) {
+                crateDb.rememberOpen(fallback.id, userId, ids);
+                await fallback.edit({ components: [view(fallback.id)], flags: V2 }).catch(() => {});
+                expireButton(fallback);
+            }
+        }
     }
 };
