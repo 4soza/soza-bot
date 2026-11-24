@@ -64,7 +64,7 @@ const PASSIVE_NAMES = ['Absolve', 'Critical', 'Discharge', 'Energize', 'Enrage',
     'Lifesteal', 'Magic', 'MagicResist', 'Manatap', 'PhysicalResist', 'Regeneration', 'Sacrifice', 'Safeguard', 'Snail',
     'Sprout', 'Strength', 'Thorns', 'WeaponPoint',
     // passive baru (khusus bot ini)
-    'Rend', 'Execute', 'Photosynthesis', 'Tide', 'Ferocity', 'Sharpness', 'Wildfire', 'Frostbite', 'Lifebloom'];
+    'DoubleStrike', 'Execute', 'Photosynthesis', 'Ferocity', 'Sharpness', 'GiantSlayer', 'FrostArmor', 'Lifebloom'];
 for (const name of WEAPON_NAMES) DEFS[`w_${name.toLowerCase()}`] = { fallback: '' };
 for (const name of PASSIVE_NAMES) DEFS[`p_${name.toLowerCase()}`] = { fallback: '' };
 // Versi berbingkai warna rarity: w_<nama>_<rank> dan p_<nama>_<rank> (urutan sama dengan WeaponInterface.ranks).
@@ -110,7 +110,7 @@ DEFS.floot2 = { animated: true, fallback: '🎁' }; // fabled lootbox bergetar
 DEFS.floot3 = { animated: true, fallback: '🎁' }; // fabled lootbox terbuka
 // Ikon buff/debuff di samping nama hewan (b_<nama>), key = id buff di funeconomy/battle/buffs.
 const BUFF_KEYS = { 1: 'b_taunt', 2: 'b_poison', 3: 'b_flame', 4: 'b_defenseup', 5: 'b_freeze', 6: 'b_attackup',
-    7: 'b_attackupplus', 8: 'b_attackupplusplus', 9: 'b_mortality', 10: 'b_celebration', 11: 'b_leech', 12: 'b_stinky' };
+    7: 'b_attackupplus', 8: 'b_attackupplusplus', 9: 'b_mortality', 10: 'b_celebration', 11: 'b_leech', 12: 'b_stinky', 13: 'frostbite', 14: 'exposed', 15: 'heavyarrow' };
 for (const key of Object.values(BUFF_KEYS)) DEFS[key] = { fallback: '' };
 // Gem buff (cgem1..fgem4): huruf = rarity (c u r e m l f), angka = bentuk (1 permata, 2 lingkaran, 3 hati, 4 bintang).
 const GEM_LETTERS = ['c', 'u', 'r', 'e', 'm', 'l', 'f'];
