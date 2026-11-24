@@ -25,7 +25,7 @@ module.exports = {
                     type: 17,
                     accent_color: 0x7dbceb,
                     components: [
-                        { type: 10, content: bossView.ticketIcons(left) },
+                        { type: 10, content: `### ${bossView.ticketIcons(left)}` },
                         { type: 10, content: `**${displayName(message)}**, you currently have **${left}/${max}** boss ticket${left === 1 ? '' : 's'}!\n-# Replenishes <t:${resetUnix}:R>` }
                     ]
                 }],
