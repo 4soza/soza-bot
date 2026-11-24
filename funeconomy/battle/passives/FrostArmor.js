@@ -9,7 +9,7 @@ const Log = require('../util/logUtil.js');
 const Frostbite = require('../buffs/Frostbite.js');
 const Freeze = require('../buffs/Freeze.js');
 
-/* Menggantikan passive Tide (id 25) dan Frostbite lama (id 29, dialihkan ke sini di WeaponInterface), jadi senjata lama otomatis memakai Frost Armor. */
+/* Menggantikan passive Tide (id 25), jadi senjata lama dengan Tide otomatis memakai Frost Armor. */
 module.exports = class FrostArmor extends PassiveInterface {
 	init() {
 		this.id = 25;
