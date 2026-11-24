@@ -52,6 +52,12 @@ const QUESTS = {
         lootbox: [2, 4, 6], crate: [2, 4, 6], shards: [200, 400, 600],
         chance: [0.5, 0.3, 0.2]
     },
+    // Kalahkan guild boss: hadiah tetap 1000 weapon shard.
+    boss: {
+        emoji: '👹', text: () => 'Defeat the guild boss!', prize: 'shards',
+        count: [1], cash: [0], lootbox: [0], crate: [0], shards: [1000],
+        chance: [1]
+    },
     // Berburu 3 hewan dengan rank tertentu; count[] berisi nama rank.
     find: {
         emoji: '🔎', text: (rank) => `Hunt 3 animals that are ${rank} rank!`, target: 3,

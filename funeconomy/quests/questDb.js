@@ -49,7 +49,7 @@ function randomQuest(random = Math.random) {
         roll -= chance[i];
     }
     const prizes = ['cash', 'shards', 'lootbox', 'crate'];
-    const prize = prizes[Math.floor(random() * prizes.length)];
+    const prize = data.QUESTS[name].prize || prizes[Math.floor(random() * prizes.length)];
     return { qid: Math.floor(random() * 1e9), name, level, prize, count: 0, locked: false, done: false };
 }
 
