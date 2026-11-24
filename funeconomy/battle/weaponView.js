@@ -127,7 +127,10 @@ function describeWeapon(weapon, { footer } = {}) {
 		for (const buff of weapon.getBuffs()) desc += `${buff.emoji} **${buff.name}** - ${buff.desc}\n`;
 	}
 	if (weapon.passives.length <= 0) desc += '\n**Passives:** None';
-	for (const passive of weapon.passives) desc += `\n${passive.emoji} **${passive.name}** - ${passive.desc}`;
+	for (const passive of weapon.passives) {
+		desc += `\n${passive.emoji} **${passive.name}** - ${passive.desc}`;
+		if (passive.extraDesc) desc += `\n${passive.extraDesc.split('\n').map((l) => `> ${l}`).join('\n')}`;
+	}
 	return { description: desc, footer };
 }
 
