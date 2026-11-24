@@ -311,10 +311,11 @@ async function startFight(interaction, bossId, { confirmed = false, messageId = 
         const ask = confirmMessage('ask', `### ${emojis.bossTicket()}, you already fought this boss!\nAre you sure you want to use another boss ticket?\nYou only have **${left}/${bossService.CONFIG.TICKETS_PER_DAY}** tickets left: ${ticketIcons(left)}`, { bossId, messageId: interaction.message?.id || '0' });
         return interaction.reply({ ...ask, flags: V2 | EPHEMERAL });
     }
-    let paid = false;
-    if (already) {
-        paid = await bossService.useTicket(userId);
-        if (!paid) return interaction.update(confirmMessage('no', `### ${emojis.bossTicket()}, you have no boss tickets left!`, { bossId, messageId, disabled: true }));
+    // Setiap fight memakai 1 tiket (fight pertama juga). Fight ke-2 dst di boss yang sama minta konfirmasi dulu (di atas).
+    const paid = await bossService.useTicket(userId);
+    if (!paid) {
+        const none = `${emojis.bossTicket()} | **${name}**, you have no boss tickets left! Tickets reset every day.`;
+        return confirmed ? interaction.update(confirmMessage('no', `### ${emojis.bossTicket()}, you have no boss tickets left!`, { bossId, messageId, disabled: true })) : ephemeral(none);
     }
 
     running.add(userId);
@@ -326,7 +327,6 @@ async function startFight(interaction, bossId, { confirmed = false, messageId = 
 
         const result = await bossService.fight({ bossId, userId, playerTeam: team, playerName: name });
         if (result.error) {
-            if (paid) await bossService.refundTicket(userId);
             return channel?.send({ content: `🚫 | **${name}**, the boss is no longer here!`, allowedMentions: { parse: [] } });
         }
         await refreshMessage(bossMessage, result.doc);
