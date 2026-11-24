@@ -14,13 +14,11 @@ module.exports = class PStaff extends WeaponInterface {
 		this.emojis = Array(7).fill('💧');
 		this.pristineEmojis = Array(7).fill('💧');
 		this.defaultEmoji = '💧';
-		this.statDesc = `Remove a buff from an enemy. If successful, deal **?%** of your ${WeaponInterface.magEmoji}MAG to them. Remove a debuff from an ally. If successful, heal **?%** of your ${WeaponInterface.strEmoji}STR to them.`;
+		this.statDesc = `Remove a debuff from a random ally and heal them for **?%** of your ${WeaponInterface.magEmoji}MAG and apply 1 stack of **Sacred Ward** for 2 turns.`;
 		this.availablePassives = 'all';
 		this.passiveCount = 1;
-		this.qualityList = [
-			[50, 100],
-			[50, 100],
-		];
+		this.buffList = [16];
+		this.qualityList = [[30, 80]];
 		this.manaRange = [200, 125];
 	}
 
@@ -30,83 +28,39 @@ module.exports = class PStaff extends WeaponInterface {
 		/* No mana */
 		if (me.stats.wp[0] < this.manaCost) return this.attackPhysical(me, team, enemy);
 
-		/* Grab enemy with buff and ally with debuff */
-		let attacking = WeaponInterface.getAttacking(me, team, enemy, { hasBuff: true });
+		/* Prefer an ally with a debuff, otherwise any living ally still gets healed and warded */
 		let ally = WeaponInterface.getRandomAnimal(team, { hasDebuff: true, isAlive: true });
-		if (!attacking && !ally) return this.attackPhysical(me, team, enemy);
+		if (!ally) ally = WeaponInterface.getRandomAnimal(team, { isAlive: true });
+		if (!ally) return this.attackPhysical(me, team, enemy);
 
 		let logs = new Logs();
+		const tags = { me, allies: team, enemies: enemy };
 
-		/* deplete weapon points*/
-		let mana = WeaponInterface.useMana(me, this.manaCost, me, {
-			me,
-			allies: team,
-			enemies: enemy,
-		});
+		/* deplete weapon points */
+		let mana = WeaponInterface.useMana(me, this.manaCost, me, tags);
 		let manaLogs = new Logs();
 		manaLogs.push(`[PSTAFF] ${me.nickname} used ${mana.amount} WP`, mana.logs);
-
 		logs.addSubLogs(manaLogs);
 
-		/* Remove a buff from an enemy */
-		if (attacking) {
-			/* Remove buff */
-			let buffToRemove, buffFound;
-			for (let i in attacking.buffs) {
-				if (buffFound) break;
-				let buff = attacking.buffs[i];
-				if (!buff.debuff) {
-					buffFound = true;
-					buffToRemove = i;
-				}
-			}
-			let removedBuff = attacking.buffs.splice(buffToRemove, 1);
-
-			/* Calculate damage */
-			let damage = WeaponInterface.getDamage(me.stats.mag, this.stats[0] / 100);
-
-			/* Deal damage and freeze*/
-			damage = WeaponInterface.inflictDamage(me, attacking, damage, WeaponInterface.MAGICAL, {
-				me,
-				allies: team,
-				enemies: enemy,
-			});
-
-			logs.push(
-				`[PSTAFF] ${me.nickname} removed ${removedBuff[0].name} from ${attacking.nickname} and damaged for ${damage.amount} HP`,
-				damage.logs
-			);
+		/* Remove a debuff from the ally */
+		const index = ally.buffs.findIndex((b) => b.debuff && !b.markedForDeath);
+		let removed = '';
+		if (index >= 0) {
+			const [removedBuff] = ally.buffs.splice(index, 1);
+			removed = `removed ${removedBuff.name} from ${ally.nickname}, `;
 		}
 
-		/* Remove a debuff from an ally */
-		if (ally) {
-			/* Remove debuff */
-			let buffToRemove, buffFound;
-			for (let i in ally.buffs) {
-				if (buffFound) break;
-				let buff = ally.buffs[i];
-				if (buff.debuff) {
-					buffFound = true;
-					buffToRemove = i;
-				}
-			}
-			let removedBuff = ally.buffs.splice(buffToRemove, 1);
+		/* Heal */
+		let heal = WeaponInterface.getDamage(me.stats.mag, this.stats[0] / 100);
+		heal = WeaponInterface.heal(ally, heal, me, tags);
+		logs.push(`[PSTAFF] ${me.nickname} ${removed}healed ${ally.nickname} for ${heal.amount} HP`, heal.logs);
 
-			/* Calculate heal */
-			let heal = WeaponInterface.getDamage(me.stats.att, this.stats[1] / 100);
-
-			/* Heal ally */
-			heal = WeaponInterface.heal(ally, heal, me, {
-				me,
-				allies: team,
-				enemies: enemy,
-			});
-
-			logs.push(
-				`[PSTAFF] ${me.nickname} removed ${removedBuff[0].name} from ${ally.nickname} and healed for ${heal.amount} HP`,
-				heal.logs
-			);
-		}
+		/* Sacred Ward: 1 stack for 2 turns */
+		const ward = this.getBuffs(me)[0];
+		const wardLogs = new Logs();
+		wardLogs.push(ward.addStack(ally, 2, tags));
+		logs.push(`[PSTAFF] ${me.nickname} applied Sacred Ward to ${ally.nickname}`);
+		logs.addSubLogs(wardLogs);
 
 		return logs;
 	}
