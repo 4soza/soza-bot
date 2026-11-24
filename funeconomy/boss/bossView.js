@@ -7,6 +7,8 @@ const emojis = require('../customEmoji');
 const cfg = require('../config');
 const teamUtil = require('../battle/teamUtil');
 const bossService = require('./bossService');
+const questDb = require('../quests/questDb');
+const questTrack = require('../quests/questTrack');
 const { renderBossCards, renderBossAnimal } = require('./bossCard');
 const WeaponInterface = require('../battle/WeaponInterface');
 
@@ -328,6 +330,12 @@ async function startFight(interaction, bossId, { confirmed = false, messageId = 
             return channel?.send({ content: `🚫 | **${name}**, the boss is no longer here!`, allowedMentions: { parse: [] } });
         }
         await refreshMessage(bossMessage, result.doc);
+        if (result.finished) {
+            try {
+                const done = await questDb.track(userId, 'boss');
+                if (done.length && channel) await questTrack.notifyFinished(channel, userId, name, done);
+            } catch (error) { console.error('[BOSS] quest track failed:', error.message); }
+        }
     } finally {
         running.delete(userId);
     }
