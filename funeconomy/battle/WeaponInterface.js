@@ -937,8 +937,8 @@ const loadDir = (dir) => {
 };
 const passives = {};
 for (const passive of loadDir('passives')) passives[passive.getID] = passive;
-/* Passive Frostbite lama (id 29) sudah diganti Frost Armor (id 25): senjata lama yang menyimpan id 29 dibaca sebagai Frost Armor. */
-const LEGACY_PASSIVES = { 29: 25 };
+/* Alias id passive lama -> id baru (kosong: id 29 sekarang Resonance, id 25 Frost Armor). */
+const LEGACY_PASSIVES = {};
 for (const [oldId, newId] of Object.entries(LEGACY_PASSIVES)) if (passives[newId]) passives[oldId] = passives[newId];
 const buffs = {};
 for (const buff of loadDir('buffs')) if (!buff.disabled) buffs[buff.getID] = buff;
