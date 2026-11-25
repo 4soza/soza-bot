@@ -115,7 +115,8 @@ function helpText() {
 function describeWeapon(weapon, { footer } = {}) {
 	let desc = `**Name:** ${weapon.name}\n`;
 	desc += `**ID:** \`${weapon.uwid}\`\n`;
-	desc += `**Sell Value:** ${weapon.unsellable ? 'UNSELLABLE' : weaponDb.SELL_PRICES[weapon.rank.name]}\n`;
+	const num = (n) => Number(n).toLocaleString('en-US');
+	desc += `**Sell Value:** ${weapon.unsellable ? 'UNSELLABLE' : `${cfg.CASH_EMOJI} ${num(weaponDb.SELL_PRICES[weapon.rank.name])} / ${emojis.shard()} ${num(weaponDb.SHARD_PRICES[weapon.rank.name])}`}\n`;
 	desc += `**Quality:** ${weapon.rank.emoji} ${weapon.avgQuality}%\n`;
 	desc += `**Wear:** \`${weapon.wearName?.toUpperCase()}\`\n`;
 	if (weapon.bossKey) desc += '**Type:** `BOSS`\n';
@@ -239,14 +240,15 @@ async function crateViewMessage(ownerId, ownerName, uwids, index, crateMessageId
 		text(body.slice(0, 3800)),
 		separator(),
 		{ type: 9, components: [text(`-# ${footer}`)], accessory: button(id('star', index), { emoji: emojis.get(weapon.favorite ? 'star_on' : 'star_off'), style: 2, disabled: expired }) },
-		{
+		// Tombol halaman hanya muncul kalau ada lebih dari 1 senjata (seperti OwO)
+		...(total > 1 ? [{
 			type: 1,
 			components: [
 				nav('first', emojis.get('nav_first'), 0), nav('prev', emojis.get('nav_prev'), index),
 				button(id('now', index), { label: `${index + 1}/${total}`, disabled: true }),
 				nav('next', emojis.get('nav_next'), index), nav('last', emojis.get('nav_last'), index)
 			]
-		}
+		}] : [])
 	];
 	return { components: [{ type: 17, accent_color: expired ? EXPIRED_COLOR : EMBED_COLOR, components }], flags: V2 };
 }
