@@ -8,6 +8,7 @@ const data = require('./questData');
 const db = require('./questDb');
 const { EMBED_COLOR } = require('../battle/battleDisplay');
 const { track } = require('../inactivity');
+const questTrack = require('./questTrack');
 
 const BUTTON_PREFIX = 'fquest';
 const V2 = 32768; // MessageFlags.IsComponentsV2
@@ -135,6 +136,13 @@ async function handleButton(interaction) {
     const [, tab, ownerId, action, arg] = interaction.customId.split(':');
     if (interaction.user.id !== ownerId) {
         return interaction.reply({ content: `${cfg.EMOJI.ERROR} | This is not your menu!`, flags: EPHEMERAL });
+    }
+    // Tombol 🔍 di pesan "quest selesai" hanya berlaku 10 menit.
+    if (action === 'view') {
+        if (Date.now() - interaction.message.createdTimestamp > questTrack.EXPIRE_MS) {
+            return interaction.reply({ content: `${cfg.EMOJI.ERROR} | This button has expired!`, flags: EPHEMERAL });
+        }
+        questTrack.cancelExpire(interaction.message.id);
     }
     // Kalau database lambat, tunda jawaban supaya interaksi tidak kadaluarsa (Discord hanya memberi 3 detik).
     const deferTimer = setTimeout(() => {

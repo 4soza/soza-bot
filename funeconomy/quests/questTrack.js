@@ -5,30 +5,55 @@ const data = require('./questData');
 const emojis = require('../customEmoji');
 const { displayName } = require('../utils');
 
+const EXPIRE_MS = 10 * 60 * 1000;
+const BLUE = 0x7ab8f5;
+const GRAY = 0x4f545c;
+const timers = new Map(); // id pesan -> timer
+
+function noticeBox(userId, text, expired) {
+    return {
+        type: 17,
+        accent_color: expired ? GRAY : BLUE,
+        components: [{
+            type: 9,
+            components: [{ type: 10, content: text }],
+            accessory: {
+                type: 2, style: 2, disabled: expired, custom_id: `fquest:quests:${userId}:view`,
+                emoji: emojis.button(emojis.get('search'))
+            }
+        }]
+    };
+}
+
+/** Batalkan timer kadaluarsa (dipanggil saat tombol 🔍 diklik, karena pesan sudah berubah jadi daftar quest). */
+function cancelExpire(messageId) {
+    const timer = timers.get(messageId);
+    if (timer) clearTimeout(timer);
+    timers.delete(messageId);
+}
+
 /**
- * Pesan "quest selesai" gaya OwO (kotak Components V2): tombol 🔍 mengganti pesan ini jadi daftar quest.
- * finished = array quest dari db.track.
+ * Pesan "quest selesai" gaya OwO: awalnya biru, tombol 🔍 mengganti pesan jadi daftar quest.
+ * Setelah 10 menit warnanya abu-abu dan tombol 🔍 tidak bisa diklik. finished = array quest dari db.track.
  */
 async function notifyFinished(channel, userId, name, finished) {
-    const lines = finished.map((q) => {
+    const text = finished.map((q) => {
         const info = data.QUESTS[q.name];
         const goal = data.questGoal(q.name, q.level);
         const count = q.name === 'find' ? info.count[q.level] : goal;
         return `🎉 | **${name}**, You completed a quest: \`${info.text(count)}\`!`;
-    });
-    await channel.send({
+    }).join('\n');
+    const sent = await channel.send({
         flags: 32768,
-        components: [{
-            type: 17,
-            accent_color: 0x4f545c,
-            components: [{
-                type: 9,
-                components: [{ type: 10, content: lines.join('\n') }],
-                accessory: { type: 2, style: 2, custom_id: `fquest:quests:${userId}:view`, emoji: emojis.button(emojis.get('search')) }
-            }]
-        }],
+        components: [noticeBox(userId, text, false)],
         allowedMentions: { parse: [] }
     });
+    const timer = setTimeout(() => {
+        timers.delete(sent.id);
+        sent.edit({ flags: 32768, components: [noticeBox(userId, text, true)], allowedMentions: { parse: [] } }).catch(() => {});
+    }, EXPIRE_MS);
+    timer.unref?.();
+    timers.set(sent.id, timer);
 }
 
 /**
@@ -50,4 +75,4 @@ cooldown.onStart((game, userId) => {
     if (GAMBLE_GAMES.has(game)) db.track(userId, 'gamble');
 });
 
-module.exports = { trackFor, notifyFinished };
+module.exports = { trackFor, notifyFinished, cancelExpire, EXPIRE_MS };

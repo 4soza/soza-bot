@@ -38,8 +38,10 @@ async function rollover(userId, now = Date.now()) {
 
 /* ---------- quest acak ---------- */
 
-function randomQuest(random = Math.random) {
-    const names = Object.keys(data.QUESTS);
+function randomQuest(random = Math.random, exclude = []) {
+    const all = Object.keys(data.QUESTS);
+    const names = all.filter((n) => !exclude.includes(n));
+    if (!names.length) names.push(...all);
     const name = names[Math.floor(random() * names.length)];
     const { chance } = data.QUESTS[name];
     let roll = random();
@@ -150,22 +152,26 @@ async function trackQuests(userId, key, count, ranks) {
 
 /**
  * Keadaan lengkap user: progres hari ini/minggu ini dan daftar quest. Sekalian mereset hari/minggu baru
- * dan memberi quest harian (1 per hari sampai 3; pengguna baru langsung dapat 2).
+ * dan mengganti quest tiap hari (2-3 quest acak per hari).
  */
 async function getState(userId, { now = Date.now(), random = Math.random } = {}) {
     userId = String(userId);
     await settleFindQuests();
     await rollover(userId, now);
     const today = dayNumber(now);
-    const first = await Quest.findOneAndUpdate(
-        { userId, questDay: -1, 'quests.0': { $exists: false } },
-        { $set: { questDay: today }, $push: { quests: { $each: [randomQuest(random), randomQuest(random)] } } }
+    // Tiap hari berganti: quest yang belum selesai diganti, yang sudah selesai (belum diklaim) tetap ada.
+    // Jumlah quest per hari acak 2-3, masing-masing punya hadiah sendiri.
+    const old = await Quest.findOneAndUpdate(
+        { userId, questDay: { $ne: today } }, { $set: { questDay: today } }
     ).lean();
-    if (!first) {
-        await Quest.findOneAndUpdate(
-            { userId, questDay: { $lt: today }, 'quests.2': { $exists: false } },
-            { $set: { questDay: today }, $push: { quests: randomQuest(random) } }
-        );
+    if (old) {
+        const kept = (old.quests || []).filter((q) => q.done);
+        const target = 2 + Math.floor(random() * 2);
+        const fresh = [];
+        for (let i = kept.length; i < target; i++) {
+            fresh.push(randomQuest(random, [...kept, ...fresh].map((q) => q.name)));
+        }
+        await Quest.updateOne({ userId }, { $set: { quests: [...kept, ...fresh] } });
     }
     const doc = await Quest.findOne({ userId }).lean();
     return {
