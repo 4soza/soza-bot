@@ -76,11 +76,14 @@ async function settleDay(client, day) {
         }
     }
 
+    // Pemenang menerima pool + bonus bot (seperti OwO).
+    const prize = winnerId ? pool + cfg.LOTTERY.BONUS : pool;
+
     let claimed;
     try {
         const res = await Result.updateOne(
             { day },
-            { $setOnInsert: { day, winnerId, pool, participants: entries.length, paid: !winnerId } },
+            { $setOnInsert: { day, winnerId, pool: prize, participants: entries.length, paid: !winnerId } },
             { upsert: true }
         );
         claimed = res.upsertedCount === 1;
@@ -90,7 +93,7 @@ async function settleDay(client, day) {
     }
     if (!claimed || !winnerId) return;
 
-    await payWinner(client, day, winnerId, pool);
+    await payWinner(client, day, winnerId, prize);
 
     if (cfg.LOTTERY.DM_LOSERS) {
         for (const entry of entries) {
