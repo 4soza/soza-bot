@@ -165,6 +165,7 @@ module.exports = {
     // Peluang menang = total taruhanmu / total pool.
     LOTTERY: {
         MAX_PER_LOTTERY: 250000, // batas total taruhan satu user per lottery
+        BONUS: 500,              // bonus jackpot dari bot (seperti OwO), dibayar ke pemenang
         DM_LOSERS: false         // true = kirim DM ke semua peserta, bukan hanya pemenang
     },
 
