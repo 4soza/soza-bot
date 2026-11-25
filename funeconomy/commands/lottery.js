@@ -8,30 +8,61 @@ const {
     formatDuration, acquireGambleLock, releaseGambleLock, onCooldown
 } = require('../utils');
 
+const { EMBED_COLOR } = require('../battle/battleDisplay');
+
 const MAX = cfg.LOTTERY.MAX_PER_LOTTERY;
 
+const code = (value) => '```fix\n' + value + '```';
+
+/* Peluang menang seperti OwO: >= 0.01% dipotong 2 desimal, di bawahnya angka penuh. */
 function chanceText(mine, pool) {
-    if (!pool || !mine) return '0%';
-    const pct = (mine / pool) * 100;
-    if (pct < 0.01) return '<0.01%';
-    return `${Number(pct.toFixed(2))}%`;
+    if (!mine) return '0%';
+    let pct = pool ? (mine / pool) * 100 : 100;
+    if (pct >= 0.01) pct = Math.trunc(pct * 100) / 100;
+    const str = String(pct);
+    return `${/e/i.test(str) ? pct.toFixed(20).replace(/0+$/, '') : str}%`;
 }
 
-function embedFor(name, status, justBet) {
-    const lines = [
-        `**Total Bet:** ${cfg.CASH_EMOJI} ${fmt(status.mine)}`,
-        justBet ? `**Just Bet:** ${cfg.CASH_EMOJI} ${fmt(justBet)}` : null,
-        `**Winning Chance:** ${chanceText(status.mine, status.pool)}`,
-        `**Ends In:** ${formatDuration(lottery.msUntilReset())}`,
-        `**Current Jackpot:** ${cfg.CASH_EMOJI} ${fmt(status.pool)}`,
-        `**Participants:** ${fmt(status.players)}`
-    ].filter(Boolean);
+function timeLeft() {
+    const total = Math.max(0, Math.floor(lottery.msUntilReset() / 1000));
+    return `${Math.floor(total / 3600)}h ${Math.floor((total % 3600) / 60)}m ${total % 60}s`;
+}
 
+const cash = (n) => `${fmt(n)} ${cfg.CASH_NAME.charAt(0).toUpperCase()}${cfg.CASH_NAME.slice(1)}`;
+const FOOTER = '*Percentage and jackpot may change over time';
+
+/* Tampilan status (tanpa jumlah), sama seperti OwO. */
+function statusEmbed(name, status) {
     return new EmbedBuilder()
-        .setTitle(`${name}'s Lottery Submission`)
-        .setColor(0x3498db)
-        .setDescription(lines.join('\n'))
-        .setFooter({ text: `Max ${fmt(MAX)} per lottery` });
+        .setAuthor({ name: `${name}'s Lottery Status` })
+        .setColor(0x4a9fe2)
+        .setDescription(`Lottery ends every day, next draw **<t:${Math.ceil((Date.now() + lottery.msUntilReset()) / 1000)}:R>**! Good Luck!!`)
+        .addFields(
+            { name: 'Your Total Submission', value: code(cash(status.mine)), inline: true },
+            { name: 'Winning Chance', value: code(chanceText(status.mine, status.pool)), inline: true },
+            { name: 'Number of Risk Takers', value: code(`${fmt(status.players)} users`), inline: true },
+            { name: 'Current Jackpot', value: code(cash(status.pool + cfg.LOTTERY.BONUS)), inline: true },
+            { name: 'Ends in', value: code(timeLeft()), inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: FOOTER });
+}
+
+/* Tampilan setelah memasang taruhan, sama seperti OwO. */
+function embedFor(name, status, added) {
+    return new EmbedBuilder()
+        .setAuthor({ name: `${name}'s Lottery Submission` })
+        .setColor(EMBED_COLOR)
+        .setDescription(`Lottery ends once a day! The maximum lottery submission is ${fmt(MAX / 1000)}k ${cfg.CASH_NAME}!`)
+        .addFields(
+            { name: 'You added', value: code(cash(added)), inline: true },
+            { name: 'Your Total Submission', value: code(cash(status.mine)), inline: true },
+            { name: 'Winning Chance', value: code(chanceText(status.mine, status.pool)), inline: true },
+            { name: 'Current Jackpot', value: code(cash(status.pool + cfg.LOTTERY.BONUS)), inline: true },
+            { name: 'Ends in', value: code(timeLeft()), inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: FOOTER });
 }
 
 module.exports = {
@@ -60,7 +91,7 @@ module.exports = {
             // Tanpa jumlah = hanya lihat status lottery
             if (!args[0]) {
                 cooldown.start('lottery', userId);
-                return sendEmbed(message, embedFor(plainName, status, 0));
+                return sendEmbed(message, statusEmbed(plainName, status));
             }
 
             const remaining = MAX - status.mine;
@@ -69,16 +100,13 @@ module.exports = {
             }
 
             const balance = await Economy.getBetBalance(userId);
-            const bet = parseAmount(args[0], balance, remaining);
+            let bet = parseAmount(args[0], balance, remaining);
             if (!Number.isSafeInteger(bet) || bet < cfg.MIN_BET) {
                 if (args[0].toLowerCase() === 'all') return sendTemporaryError(message, errorLine(name, `you don't have any ${cfg.CASH_NAME} to bet!`));
                 return send(message, errorLine(name, `you need to bet at least **${fmt(cfg.MIN_BET)}**!`));
             }
-            if (bet > remaining) {
-                return send(message, errorLine(name, status.mine === 0
-                    ? `the maximum amount you can bet per lottery is **${fmt(MAX)}**!`
-                    : `you can only bet up to **${fmt(MAX)}** per lottery! You can still bet **${fmt(remaining)}**.`));
-            }
+            // Seperti OwO: kalau melebihi batas, taruhan dipotong sampai batas maksimal.
+            if (bet > remaining) bet = remaining;
             if (balance < bet) return sendTemporaryError(message, errorLine(name, `you don't have enough ${cfg.CASH_NAME}!`));
 
             const debited = await Economy.deductBet(userId, bet);
