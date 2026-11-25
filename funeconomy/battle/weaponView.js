@@ -227,7 +227,7 @@ async function crateViewMessage(ownerId, ownerName, uwids, index, crateMessageId
 	const weapon = weaponDb.parseWeapon(doc);
 	if (!weapon) return null;
 	weapon.favorite = !!doc.favorite;
-	let body = `**Name:** ${weapon.name}\n**Owner:** <@${ownerId}>\n`;
+	let body = `**Name:** ${weapon.name}\n**Owner:** ${ownerName}\n`;
 	body += describeWeapon(weapon).description.replace(/^\*\*Name:\*\*.*\n/, '');
 	const footer = `${emojis.get('rerollchanges')} Reroll Changes: ${weapon.rrCount} | ${emojis.get('rerollattempts')} Reroll Attempts: ${weapon.rrAttempt}`;
 	const image = emojiImageUrl(weapon.emoji);
@@ -253,4 +253,7 @@ async function crateViewMessage(ownerId, ownerName, uwids, index, crateMessageId
 	return { components: [{ type: 17, accent_color: expired ? EXPIRED_COLOR : EMBED_COLOR, components }], flags: V2 };
 }
 
-module.exports = { crateViewMessage, sellMessage, PREFIX, PER_PAGE, listMessage, helpText, RANK_NAMES, SORT_LABELS, detailEmbed, describeWeapon, rerollMessage, weaponIcons };
+/* Nama pemilik ala OwO: "@username" (teks biasa, bukan mention dan bukan display name) */
+const ownerTag = (user) => `@${String(user?.username ?? 'unknown').replace(/([\\_*~`|>])/g, '\\$1')}`;
+
+module.exports = { ownerTag, crateViewMessage, sellMessage, PREFIX, PER_PAGE, listMessage, helpText, RANK_NAMES, SORT_LABELS, detailEmbed, describeWeapon, rerollMessage, weaponIcons };

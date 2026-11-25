@@ -194,7 +194,7 @@ function scheduleCrateExpiry(interaction, ownerId, crateMessageId, opened) {
 			const msg = await interaction.message.fetch();
 			const star = JSON.stringify(msg.components).match(/fbattle:cv:\d+:\d+:(\d+):star/);
 			const index = star ? parseInt(star[1], 10) : 0;
-			const view = await weaponView.crateViewMessage(ownerId, userName(interaction.guild, interaction.user), opened.uwids, index, crateMessageId, true);
+			const view = await weaponView.crateViewMessage(ownerId, weaponView.ownerTag(interaction.user), opened.uwids, index, crateMessageId, true);
 			if (view) await msg.edit({ components: view.components, flags: view.flags });
 		} catch { /* pesan sudah dihapus */ }
 	}, wait);
@@ -215,7 +215,7 @@ async function handleCrateView(interaction, parts) {
 	else if (act === 'prev') index -= 1;
 	else if (act === 'next') index += 1;
 	else if (act === 'last') index = total - 1;
-	const message = await weaponView.crateViewMessage(ownerId, userName(interaction.guild, interaction.user), opened.uwids, index, crateMessageId);
+	const message = await weaponView.crateViewMessage(ownerId, weaponView.ownerTag(interaction.user), opened.uwids, index, crateMessageId);
 	if (!message) return ephemeral(interaction, 'That weapon no longer exists.');
 	// Tombol 🔍 menggantikan pesan crate dengan detail senjata (seperti OwO); tombol halaman memperbarui pesan yang sama.
 	if (act === 'open') scheduleCrateExpiry(interaction, ownerId, crateMessageId, opened);
