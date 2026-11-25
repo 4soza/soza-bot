@@ -31,7 +31,7 @@ async function describe(message, token, client) {
     const weapon = weaponDb.parseWeapon(doc);
     if (!weapon) return fail(message, `I could not find a weapon with that unique weapon id! Please use \`${cfg.PREFIX}weapon\` for the weapon ID!`);
     const owner = doc.userId === message.author.id ? message.author : await client.users.fetch(doc.userId).catch(() => null);
-    const ownerName = owner ? userName(message.guild, owner) : 'A User';
+    const ownerName = owner ? weaponView.ownerTag(owner) : 'A User';
     if (!canEmbed(message)) return send(message, `**${weapon.fullName}** ${weapon.avgQuality}%`);
     // Tampilan sama dengan detail dari 🔍 crate: ada bintang favorit, abu-abu dan tombol mati setelah 10 menit.
     const noMentions = { parse: [] };
