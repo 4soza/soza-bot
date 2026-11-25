@@ -227,7 +227,7 @@ async function crateViewMessage(ownerId, ownerName, uwids, index, crateMessageId
 	const weapon = weaponDb.parseWeapon(doc);
 	if (!weapon) return null;
 	weapon.favorite = !!doc.favorite;
-	let body = `**Name:** ${weapon.name}\n**Owner:** ${ownerName}\n`;
+	let body = `**Name:** ${weapon.name}\n**Owner:** <@${ownerId}>\n`;
 	body += describeWeapon(weapon).description.replace(/^\*\*Name:\*\*.*\n/, '');
 	const footer = `${emojis.get('rerollchanges')} Reroll Changes: ${weapon.rrCount} | ${emojis.get('rerollattempts')} Reroll Attempts: ${weapon.rrAttempt}`;
 	const image = emojiImageUrl(weapon.emoji);
