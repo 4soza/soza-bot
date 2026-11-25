@@ -54,7 +54,7 @@ async function teamEmbed(userId, ownerName, avatar, teamDoc, index, total, activ
 		author: { name: `${ownerName}'s ${teamDoc.name || 'team'}`, icon_url: avatar },
 		description: HELP,
 		color: EMBED_COLOR,
-		footer: { text: `Current Streak: ${teamDoc.streak || 0} | Highest Streak: ${teamDoc.highestStreak || 0} | Page ${index + 1}/${total}${active ? ' ⭐' : ''}` },
+	    footer: { text: `Current Streak: ${teamDoc.streak || 0} | Highest Streak: ${teamDoc.highestStreak || 0}${active ? ' ⭐' : ''}` },
 		fields
 	};
 }
