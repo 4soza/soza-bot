@@ -18,6 +18,8 @@ module.exports = class defenseUp extends BuffInterface {
 
 	// Override
 	bind(animal, duration, tags) {
+		// Defense Buff: tidak bisa dipasang kalau hewan sudah punya Defense Buff lain (Thorn Tether)
+		if (animal.buffs.some((b) => b.id == 20 && !b.markedForDeath)) return;
 		for (let i in animal.buffs) {
 			if (animal.buffs[i].id == this.id) {
 				animal.buffs[i].duration += duration;
