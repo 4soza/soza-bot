@@ -63,7 +63,7 @@ async function renderBossCards(animals) {
     const wanted = new Set();
     for (const a of animals) {
         wanted.add(a.animal.uni || a.animal.value);
-        if (a.weapon) [a.weapon.rank?.emoji, a.weapon.emoji, ...a.weapon.passives.map((p) => p.emoji)].filter(Boolean).forEach((e) => wanted.add(e));
+        if (a.weapon) [a.weapon.emoji, ...a.weapon.passives.map((p) => p.emoji)].filter(Boolean).forEach((e) => wanted.add(e));
     }
     const STAT_ICON = { hp: emojis.get('stat_hp'), wp: emojis.get('stat_wp'), str: emojis.get('stat_str'), mag: emojis.get('stat_mag'), pr: emojis.get('stat_pr'), mr: emojis.get('stat_mr') };
     Object.values(STAT_ICON).forEach((e) => wanted.add(e));
@@ -120,28 +120,28 @@ async function renderBossCards(animals) {
         ctx.font = font(13, 'bold');
         ctx.fillText(`${fmt(hp)} / ${fmt(hpMax)}`, x + CARD_W / 2, by + 16);
 
-        // stat (dua baris)
+        // stat (tiga baris, dua kolom) - letak dan ukuran disamakan dengan OwO (diukur dari screenshot, dihitung dari bawah kartu)
         const stat = (key, value, sx, sy) => {
-            drawEmoji(ctx, STAT_ICON[key], images.get(STAT_ICON[key]), sx, sy - 13, 16);
+            drawEmoji(ctx, STAT_ICON[key], images.get(STAT_ICON[key]), sx, sy - 10, 20);
             ctx.textAlign = 'left';
             ctx.fillStyle = '#e8f3fb';
-            ctx.font = font(13, 'bold');
-            ctx.fillText(value, sx + 22, sy);
+            ctx.font = font(12, 'bold');
+            ctx.fillText(value, sx + 24, sy + 5);
         };
-        const sx = x + 18;
-        stat('hp', fmt(a.baseHp ?? hpMax), sx, y + 198);
-        stat('wp', fmt(s.wp[1] + s.wp[3]), sx + 100, y + 198);
-        stat('str', fmt(s.att[0] + s.att[1]), sx, y + 218);
-        stat('mag', fmt(s.mag[0] + s.mag[1]), sx + 100, y + 218);
-        stat('pr', WeaponInterface.resToPrettyPercent(s.pr), sx, y + 238);
-        stat('mr', WeaponInterface.resToPrettyPercent(s.mr), sx + 100, y + 238);
+        const sx1 = x + 23, sx2 = x + 89;
+        const r1 = y + CARD_H - 85, r2 = y + CARD_H - 55, r3 = y + CARD_H - 23;
+        stat('hp', fmt(a.baseHp ?? hpMax), sx1, r1);
+        stat('wp', fmt(s.wp[1] + s.wp[3]), sx2, r1);
+        stat('str', fmt(s.att[0] + s.att[1]), sx1, r2);
+        stat('mag', fmt(s.mag[0] + s.mag[1]), sx2, r2);
+        stat('pr', WeaponInterface.resToPrettyPercent(s.pr), sx1, r3);
+        stat('mr', WeaponInterface.resToPrettyPercent(s.mr), sx2, r3);
 
-        // senjata + passive
+        // senjata (besar, kanan) dengan passive kecil di bawahnya, tanpa emoji rarity
         if (a.weapon) {
-            const icons = [a.weapon.rank?.emoji, a.weapon.emoji, ...a.weapon.passives.map((p) => p.emoji)].filter(Boolean);
-            const size = 30;
-            const total = icons.length * size + (icons.length - 1) * 4;
-            icons.forEach((e, k) => drawEmoji(ctx, e, images.get(e), x + (CARD_W - total) / 2 + k * (size + 4), y + CARD_H - 44, size));
+            const wx = x + 151;
+            if (a.weapon.emoji) drawEmoji(ctx, a.weapon.emoji, images.get(a.weapon.emoji), wx, y + CARD_H - 100, 48);
+            a.weapon.passives.map((p) => p.emoji).filter(Boolean).forEach((e, k) => drawEmoji(ctx, e, images.get(e), wx + k * 28, y + CARD_H - 41, 22));
         }
 
         if (dead) {
