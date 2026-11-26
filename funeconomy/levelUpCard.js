@@ -110,6 +110,20 @@ function drawBackground(ctx, image = null) {
     ctx.fillRect(0, 0, W, H);
 }
 
+// Cache avatar (URL Discord berisi hash, jadi aman): tidak download ulang tiap command, dan bisa di-prefetch paralel.
+const AVATAR_TTL_MS = 10 * 60 * 1000;
+const AVATAR_MAX = 300;
+const avatarCache = new Map();
+function loadAvatar(url) {
+    if (!url) return Promise.resolve(null);
+    const hit = avatarCache.get(url);
+    if (hit && Date.now() - hit.at < AVATAR_TTL_MS) return hit.promise;
+    if (avatarCache.size >= AVATAR_MAX) avatarCache.delete(avatarCache.keys().next().value);
+    const promise = loadImage(url).catch(() => { avatarCache.delete(url); return null; });
+    avatarCache.set(url, { at: Date.now(), promise });
+    return promise;
+}
+
 async function drawAvatar(ctx, avatarURL, name) {
     const x = 26;
     const y = 26;
@@ -120,9 +134,11 @@ async function drawAvatar(ctx, avatarURL, name) {
     let drawn = false;
     if (avatarURL) {
         try {
-            const img = await loadImage(avatarURL);
-            ctx.drawImage(img, x, y, size, size);
-            drawn = true;
+            const img = await loadAvatar(avatarURL);
+            if (img) {
+                ctx.drawImage(img, x, y, size, size);
+                drawn = true;
+            }
         } catch { /* fallback di bawah */ }
     }
     if (!drawn) {
@@ -264,5 +280,5 @@ async function generateLevelUpCard({ name, avatarURL, level, reward, boxes = 0, 
 module.exports = {
     generateLevelUpCard,
     // dipakai bersama oleh kartu level (levelCard.js)
-    shared: { W, H, SCALE, FONT, ensureFont, font, roundRect, drawBackground, drawAvatar, fitFont }
+    shared: { W, H, SCALE, FONT, ensureFont, font, roundRect, drawBackground, drawAvatar, fitFont, loadAvatar }
 };

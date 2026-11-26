@@ -74,7 +74,8 @@ async function handleFunEconomy(message, client) {
     if (!(await ensureRegistered(message, client))) return true;
 
     // Catat server user (untuk ranking per-server). Kegagalan di sini tidak boleh menghentikan command.
-    await touchGuild(message.author.id, message.guild.id)
+    // Tidak ditunggu supaya command langsung jalan (hasilnya hanya untuk ranking per-server).
+    touchGuild(message.author.id, message.guild.id)
         .catch((error) => console.error('[FUNECONOMY] touchGuild failed:', error.message));
 
     await command.execute(message, args, client);
