@@ -21,7 +21,19 @@ module.exports = {
         target = target || message.author;
         if (target.bot) return send(message, errorLine(name, "bots don't have a level!"));
 
-        const profile = await Level.getProfile(target.id);
+        // Semua yang dibutuhkan kartu diambil bersamaan (profil, rank, background, avatar) supaya kartu cepat muncul seperti OwO.
+        const me = message.guild.members.me;
+        const canAttach = !!me && !!message.channel.permissionsFor?.(me)?.has(PermissionsBitField.Flags.AttachFiles);
+        const avatarURL = target.displayAvatarURL?.({ extension: 'png', size: 256 }) ?? null;
+        const { shared } = require('../levelUpCard');
+        shared.ensureFont();
+        const [profile, ranking, backgroundBuffer] = await Promise.all([
+            Level.getProfile(target.id),
+            // Rank global berdasarkan XP, seperti rank di kartu level OwO.
+            CATEGORIES.level.rankOf(target.id, { scope: 'global' }).catch(() => null),
+            canAttach ? LevelCardPreference.getBackgroundBuffer(target.id).catch(() => null) : null,
+            canAttach ? shared.loadAvatar(avatarURL) : null
+        ]);
         const member = message.guild.members.cache.get(target.id);
         const rawName = target.username;
         if (!profile) {
@@ -29,21 +41,16 @@ module.exports = {
         }
 
         const { level, into, needed } = progress(profile.xp);
-        // Rank global berdasarkan XP, seperti rank di kartu level OwO.
-        const ranking = await CATEGORIES.level.rankOf(target.id, { scope: 'global' }).catch(() => null);
         const rank = ranking?.rank ?? null;
 
         // Kartu gambar ala OwO; kalau bot tidak boleh upload file atau kartu gagal dibuat, kirim teks biasa.
-        const me = message.guild.members.me;
-        const canAttach = !!me && !!message.channel.permissionsFor?.(me)?.has(PermissionsBitField.Flags.AttachFiles);
         if (canAttach) {
             try {
                 const { generateLevelCard } = require('../levelCard');
-                const backgroundBuffer = await LevelCardPreference.getBackgroundBuffer(target.id);
                 const buffer = await generateLevelCard({
                     name: rawName,
                     guildName: message.guild.name,
-                    avatarURL: target.displayAvatarURL?.({ extension: 'png', size: 256 }) ?? null,
+                    avatarURL,
                     level, rank, xp: into, needed, backgroundBuffer
                 });
                 return message.channel.send({
