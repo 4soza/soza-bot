@@ -3,12 +3,17 @@
  * (https://github.com/ChristopherBThai/Discord-OwO-Bot), adapted for this bot.
  */
 
+/*
+ * Id 9, dulu Wand of Absorption. Sekarang Arcane Scepter seperti OwO (replenish 65%-95% MAG).
+ * Emoji: w_arcanescepter_*, wi_arcanescepter, b?arcanescepter.
+ */
+
 const WeaponInterface = require('../WeaponInterface.js');
 const Logs = require('../util/logUtil.js');
 
 module.exports = class ArcaneScepter extends WeaponInterface {
 	init() {
-		this.id = 13;
+		this.id = 9;
 		this.name = 'Arcane Scepter';
 		this.basicDesc = '';
 		this.emojis = Array(7).fill('✨');
@@ -17,7 +22,7 @@ module.exports = class ArcaneScepter extends WeaponInterface {
 		this.statDesc = `Replenish **?%** of your ${WeaponInterface.magEmoji}MAG as ${WeaponInterface.wpEmoji}WP to an ally with the lowest ${WeaponInterface.wpEmoji}WP. This weapon can overreplenish up to 50% of max ${WeaponInterface.wpEmoji}WP.`;
 		this.availablePassives = 'all';
 		this.passiveCount = 1;
-		this.qualityList = [[40, 70]];
+		this.qualityList = [[65, 95]];
 		this.manaRange = [200, 125];
 	}
 
