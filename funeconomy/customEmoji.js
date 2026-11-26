@@ -55,16 +55,16 @@ const DEFS = {
 
 // Ikon senjata (w_<nama>) dan passive (p_<nama>), nama = nama class di funeconomy/battle/weapons|passives.
 // Tanpa fallback di sini: emoji Unicode bawaan tiap senjata/passive tetap dipakai kalau emoji kustom belum ada.
-const WEAPON_NAMES = ['AbsorbWand', 'ArcaneScepter', 'Bow', 'CelebrationRune', 'CullingScythe', 'EnergyStaff', 'FlameStaff',
+const WEAPON_NAMES = ['ArcaneScepter', 'StaffOfCorruption', 'Bow', 'CelebrationRune', 'CullingScythe', 'EnergyStaff', 'FlameStaff',
     'FoulFish', 'GlacialAxe', 'Greatsword', 'HealStaff', 'LeechScythe', 'LuckRune', 'Orb', 'PoisonDagger', 'PurityStaff',
     'ResurrectionStaff', 'Rune', 'Shield', 'Edge', 'SpiritStaff', 'VampiricStaff', 'VanguardsBanner',
     // senjata baru (khusus bot ini)
-    'ConduitClaw', 'Crossbow', 'DruidStaff', 'EyeStaff', 'FrostStaff'];
+    'ConduitClaw', 'Crossbow', 'DruidStaff', 'EyeStaff', 'FrostStaff', 'BriarHeartStaff', 'ArbitersEdge'];
 const PASSIVE_NAMES = ['Absolve', 'Critical', 'Discharge', 'Energize', 'Enrage', 'HealthPoint', 'Kamikaze', 'Knowledge',
     'Lifesteal', 'Magic', 'MagicResist', 'Manatap', 'PhysicalResist', 'Regeneration', 'Sacrifice', 'Safeguard', 'Snail',
     'Sprout', 'Strength', 'Thorns', 'WeaponPoint',
     // passive baru (khusus bot ini)
-    'DoubleStrike', 'Execute', 'Adaptation', 'Ferocity', 'Sharpness', 'GiantSlayer', 'FrostArmor', 'Lifebloom', 'Resonance'];
+    'DoubleStrike', 'Execute', 'Adaptation', 'Ferocity', 'Sharpness', 'GiantSlayer', 'FrostArmor', 'LivingHive', 'Resonance'];
 for (const name of WEAPON_NAMES) DEFS[`w_${name.toLowerCase()}`] = { fallback: '' };
 for (const name of PASSIVE_NAMES) DEFS[`p_${name.toLowerCase()}`] = { fallback: '' };
 // Versi berbingkai warna rarity: w_<nama>_<rank> dan p_<nama>_<rank> (urutan sama dengan WeaponInterface.ranks).
@@ -105,13 +105,15 @@ DEFS.blank_box = { fallback: '⬜' }; DEFS.check = { fallback: '✅' }; DEFS.cro
 DEFS.gear = { fallback: '⚙️' };
 DEFS.afk = { fallback: '💤' }; // ikon AFK (assets/emoji/afk.png)
 DEFS.stacklimit = { fallback: '📋' }; // ikon baris Stack Limit di deskripsi buff (assets/emoji/stacklimit.png)
+DEFS.attmag = { fallback: '⚔️' }; // ikon stat gabungan STR/MAG: "highest/lowest offense stat" (assets/emoji/attmag.png)
+DEFS.shield = { fallback: '🛡️' }; // ikon baris Defense Buff di deskripsi buff (assets/emoji/shield.png)
 DEFS.lock = { fallback: '🔒' }; DEFS.unlock = { fallback: '🔓' };
 DEFS.floot = { animated: true, fallback: '🎁' }; // fabled lootbox (diam)
 DEFS.floot2 = { animated: true, fallback: '🎁' }; // fabled lootbox bergetar
 DEFS.floot3 = { animated: true, fallback: '🎁' }; // fabled lootbox terbuka
 // Ikon buff/debuff di samping nama hewan (b_<nama>), key = id buff di funeconomy/battle/buffs.
 const BUFF_KEYS = { 1: 'b_taunt', 2: 'b_poison', 3: 'b_flame', 4: 'b_defenseup', 5: 'b_freeze', 6: 'b_attackup',
-    7: 'b_attackupplus', 8: 'b_attackupplusplus', 9: 'b_mortality', 10: 'b_celebration', 11: 'b_leech', 12: 'b_stinky', 13: 'frostbite', 14: 'exposed', 15: 'heavyarrow', 16: 'sacredward', 17: 'stoneskin', 18: 'spellskin' };
+    7: 'b_attackupplus', 8: 'b_attackupplusplus', 9: 'b_mortality', 10: 'b_celebration', 11: 'b_leech', 12: 'b_stinky', 13: 'frostbite', 14: 'exposed', 15: 'heavyarrow', 16: 'sacredward', 17: 'stoneskin', 18: 'spellskin', 19: 'pest', 20: 'thorntether', 21: 'sin', 22: 'virtue' };
 for (const key of Object.values(BUFF_KEYS)) DEFS[key] = { fallback: '' };
 // Gem buff (cgem1..fgem4): huruf = rarity (c u r e m l f), angka = bentuk (1 permata, 2 lingkaran, 3 hati, 4 bintang).
 const GEM_LETTERS = ['c', 'u', 'r', 'e', 'm', 'l', 'f'];
