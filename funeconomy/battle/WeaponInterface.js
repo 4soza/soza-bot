@@ -106,6 +106,16 @@ module.exports = class WeaponInterface {
 		if (!cpassives) cpassives = this.randomPassives(statOverride);
 		else cpassives.forEach((passive) => passive.setWear(this.wear?.id));
 		if (!qualities) qualities = this.randomQualities(statOverride);
+		else if (qualities.length != this.qualityList.length) {
+			/* Senjata lama yang jumlah stat-nya berubah (mis. Wand of Absorption -> Arcane Scepter): sesuaikan, jangan error.
+			 * Kualitas mana selalu yang terakhir, jadi dipertahankan. */
+			const mana = this.manaRange ? qualities[qualities.length - 1] : null;
+			const body = this.manaRange ? qualities.slice(0, -1) : qualities;
+			const base = body.length ? body.reduce((a, b) => a + b, 0) / body.length : 50;
+			const need = this.qualityList.length - (this.manaRange ? 1 : 0);
+			qualities = Array.from({ length: need }, (_, i) => (i < body.length ? body[i] : base));
+			if (this.manaRange) qualities.push(mana);
+		}
 
 		/* Construct stats */
 		let stats = this.toStats(qualities);
@@ -442,6 +452,7 @@ module.exports = class WeaponInterface {
 				);
 
 		WeaponInterface.checkTT(attacker, attackee);
+		if (totalDamage > 0) subLogs.push(WeaponInterface.notifyAllies('allyDealtDamage', attacker, attackee, totalDamage, tags));
 		return { amount: Math.round(totalDamage), logs: subLogs };
 	}
 
@@ -509,6 +520,7 @@ module.exports = class WeaponInterface {
 		}
 		if (totalHeal < 0) totalHeal = 0;
 
+		if (totalHeal > 0) subLogs.push(WeaponInterface.notifyAllies('allyHealed', from, me, totalHeal, tags));
 		return { amount: Math.round(totalHeal), logs: subLogs };
 	}
 
@@ -577,7 +589,25 @@ module.exports = class WeaponInterface {
 		}
 		if (total < 0) total = 0;
 
+		if (total > 0) subLogs.push(WeaponInterface.notifyAllies('allyHealed', from, me, total, tags));
 		return { amount: Math.round(total), logs: subLogs };
+	}
+
+	/*
+	 * Beri tahu weapon sekutu pelaku (mis. Arbiter's Edge) bahwa pelaku memberi damage / heal / replenish.
+	 * event = nama method di weapon: allyDealtDamage atau allyHealed. Hanya jalan kalau pelaku ada di daftar tim tags.
+	 */
+	static notifyAllies(event, actor, target, amount, tags) {
+		const logs = new Logs();
+		if (!actor || !tags || tags.has('tether', actor)) return logs;
+		const allies = tags._allies;
+		if (!Array.isArray(allies) || !allies.includes(actor)) return logs;
+		for (const ally of allies) {
+			if (ally.stats.hp[0] <= 0) continue;
+			const weapon = ally.weapon;
+			if (weapon && typeof weapon[event] === 'function') logs.push(weapon[event](ally, actor, target, amount, tags));
+		}
+		return logs;
 	}
 
 	static checkTT(attacker, attackee) {
