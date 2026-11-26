@@ -6,47 +6,11 @@ const {
     SeparatorSpacingSize,
     MessageFlags
 } = require('discord.js');
-const { archiveMessage, markMessageDeleted } = require('../services/messageHistoryService');
 
 module.exports = function messageDeleteHandler(client) {
-    client.on('messageCreate', message => {
-        archiveMessage(message).catch(error => {
-            console.error(
-                `[MessageHistory] Could not archive a message in guild ${message.guildId}:`,
-                error
-            );
-        });
-    });
-
-    client.on('messageUpdate', (_oldMessage, newMessage) => {
-        archiveMessage(newMessage).catch(error => {
-            console.error(
-                `[MessageHistory] Could not update a message in guild ${newMessage.guildId}:`,
-                error
-            );
-        });
-    });
-
-    client.on('messageDeleteBulk', messages => {
-        for (const message of messages.values()) {
-            markMessageDeleted(message).catch(error => {
-                console.error(
-                    `[MessageHistory] Could not archive a bulk-deleted message in guild ${message.guildId}:`,
-                    error
-                );
-            });
-        }
-    });
-
     client.on('messageDelete', async message => {
         if (!message.guildId && !message.guild) return;
 
-        await markMessageDeleted(message).catch(error => {
-            console.error(
-                `[MessageHistory] Could not archive a deleted message in guild ${message.guildId}:`,
-                error
-            );
-        });
         if (!message.guild || message.partial) return;
 
         const config = await LogConfig.findOne({
