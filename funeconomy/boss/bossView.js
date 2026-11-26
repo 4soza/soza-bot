@@ -20,7 +20,7 @@ const PICS = { ask: ['boss/ask.png', 'ask.png'], yes: ['boss/fight.png', 'fight.
 const CONFIRM_COLOR = { ask: 0x7dbceb, yes: 0x00ff00, no: 0xff0000 };
 const EPHEMERAL = 64;
 const INACTIVE_MS = 10 * 60 * 1000; // setelah 10 menit pesan boss jadi abu-abu dan tombolnya mati
-const GREY = 0x4f545c;
+const GREY = 0x616163; // abu-abu OwO (diukur dari screenshot)
 const V2 = 32768;
 const COLOR = 0x7ab8f5;
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
@@ -72,21 +72,23 @@ async function render(doc, { inactive = false, gone = false } = {}) {
     const endUnix = Math.floor(doc.endsAt.getTime() / 1000);
     const footer = `${emojis.bossTime()} ${active ? `runs away <t:${endUnix}:R>` : (won ? `defeated <t:${Math.floor(new Date(doc.updatedAt || Date.now()).getTime() / 1000)}:R>` : `expired <t:${endUnix}:R>`)}   ${emojis.bossFighters()} **${doc.fighters.length}** fighters   ${emojis.bossDefeated()} **${defeated}** defeated`;
 
+    // Boss kabur / sudah tidak tersedia / lewat 10 menit: warna abu-abu dan SEMUA tombol mati
+    const off = inactive || gone || (!active && !won);
     const container = {
         type: 17,
-        accent_color: (inactive || gone || (!active && !won)) ? GREY : (won ? 0x00ff00 : COLOR),
+        accent_color: off ? GREY : (won ? 0x00ff00 : COLOR),
         components: [
             {
                 type: 9,
-                components: [text(`## ${titleEmoji ? `${titleEmoji} ` : ''}${title}`)],
-                accessory: btn({ style: 2, custom_id: `${BUTTON_PREFIX}:info:${doc._id}`, emoji: emojis.button(emojis.get('search')), disabled: inactive })
+                components: [text(`# ${titleEmoji ? `${titleEmoji} ` : ''}${title}`)],
+                accessory: btn({ style: 2, custom_id: `${BUTTON_PREFIX}:info:${doc._id}`, emoji: emojis.button(emojis.get('search')), disabled: off })
             },
             picture,
             sep(),
             {
                 type: 9,
                 components: [text(`### Top 10 Damage Dealt\n${board}`)],
-                accessory: btn({ style: 2, custom_id: `${BUTTON_PREFIX}:stats:${doc._id}`, emoji: emojis.button(emojis.bossStats()), disabled: inactive })
+                accessory: btn({ style: 2, custom_id: `${BUTTON_PREFIX}:stats:${doc._id}`, emoji: emojis.button(emojis.bossStats()), disabled: off })
             },
             sep(),
             text(`### Rewards\n${rewards}`),
@@ -94,7 +96,7 @@ async function render(doc, { inactive = false, gone = false } = {}) {
             {
                 type: 9,
                 components: [text(footer)],
-                accessory: btn({ style: 3, label: 'Fight!', custom_id: `${BUTTON_PREFIX}:fight:${doc._id}`, emoji: emojis.button(emojis.bossTicket()), disabled: !active || inactive })
+                accessory: btn({ style: 3, label: 'Fight!', custom_id: `${BUTTON_PREFIX}:fight:${doc._id}`, emoji: emojis.button(emojis.bossTicket()), disabled: off || !active })
             }
         ]
     };
