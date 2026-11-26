@@ -8,6 +8,7 @@ const crateDb = require('../battle/crateDb');
 const weaponDb = require('../battle/weaponDb');
 const WeaponInterface = require('../battle/WeaponInterface');
 const ringShop = require('../shop/ringShop');
+const { invIdOf } = require('../battle/invIds');
 
 const { toSmallNum, chunkLines } = require('../zoo/format');
 
@@ -41,7 +42,7 @@ async function collectItems(userId) {
         if (WeaponClass && count > 0) {
             // Ikon tanpa bingkai (wi_) kalau ada, lalu ikon biasa (w_), lalu emoji bawaan.
             const emoji = emojis.gear('wi', WeaponClass.name, wid) || emojis.gear('w', WeaponClass.name, wid) || WeaponClass.getEmoji;
-            items.push({ id: wid + 100, emoji, count });
+            items.push({ id: invIdOf(wid), emoji, count });
         }
     }
     return items;

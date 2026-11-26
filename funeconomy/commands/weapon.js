@@ -132,8 +132,10 @@ module.exports = {
         }
         if (args.length === 1) {
             if (SORT_ALIASES[sub]) return list(message, { sort: SORT_ALIASES[sub] });
-            if (isInt(args[0]) && weaponDb.rankFromAlias(args[0]) < 0 && require('../battle/WeaponInterface').weapons[parseInt(args[0], 10) - 100]) {
-                return list(message, { wid: parseInt(args[0], 10) - 100 });
+            if (isInt(args[0]) && weaponDb.rankFromAlias(args[0]) < 0) {
+                // Nomor inventory (mis. 113) -> id weapon, sama seperti nomor di OwO
+                const wid = require('../battle/invIds').widOfInvId(parseInt(args[0], 10));
+                if (wid && require('../battle/WeaponInterface').weapons[wid]) return list(message, { wid });
             }
             return describe(message, args[0], client);
         }
