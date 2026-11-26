@@ -71,8 +71,8 @@ module.exports = class ArbitersEdge extends WeaponInterface {
 		const manaLogs = new Logs();
 		manaLogs.push(`[ARBITER] ${me.nickname} used ${mana.amount} WP`, mana.logs);
 
-		const highest = total(me.stats.str) >= total(me.stats.mag) ? me.stats.str : me.stats.mag;
-		const lowest = highest === me.stats.str ? me.stats.mag : me.stats.str;
+		const highest = total(me.stats.att) >= total(me.stats.mag) ? me.stats.att : me.stats.mag;
+		const lowest = highest === me.stats.att ? me.stats.mag : me.stats.att;
 
 		/* Konsumsi semua stack */
 		for (const buff of [sin, virtue]) {

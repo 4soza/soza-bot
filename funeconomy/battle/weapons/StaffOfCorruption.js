@@ -60,7 +60,7 @@ module.exports = class StaffOfCorruption extends WeaponInterface {
 		if (buff.pct > 0) buff.pct = Math.round(buff.corruptBase.pct * buff.corruptBase.factor * 100) / 100;
 
 		/* Damage fisik berdasarkan STR */
-		let damage = WeaponInterface.getDamage(me.stats.str, this.stats[1] / 100);
+		let damage = WeaponInterface.getDamage(me.stats.att, this.stats[1] / 100);
 		damage = WeaponInterface.inflictDamage(me, target, damage, WeaponInterface.PHYSICAL, tags);
 		logs.push(
 			`[CORRUPT] ${me.nickname} weakened ${target.nickname}'s ${buff.name} to ${this.stats[0]}% and damaged for ${damage.amount} HP`,
