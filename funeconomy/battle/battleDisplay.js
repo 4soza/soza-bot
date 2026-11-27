@@ -53,7 +53,8 @@ function animalCompactText(animal) {
 
 /* Satu hewan, mode image: HP/WP sudah ada di gambar, jadi teksnya cukup level, hewan, dan perlengkapan */
 function animalMiniText(animal) {
-	let text = `L.${animal.stats.lvl} ${animal.animal.value}${buffText(animal)}`;
+	// Buff tidak ditulis di teks (sudah ada di gambar), khusus mode image.
+	let text = `L.${animal.stats.lvl} ${animal.animal.value}`;
 	text += animal.weapon ? ` - ${weaponText(animal.weapon)}` : ' - _no weapon_';
 	return text;
 }
