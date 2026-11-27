@@ -123,6 +123,7 @@ module.exports = {
             await sendTemporaryError(message, errorLine(name, 'something went wrong while saving your hunt, you were refunded!')).catch(() => {});
         });
         // Task & quest: hunt, lootbox yang ditemukan, dan rank hewan (quest "find")
+        if (message.guild) require('../eventReward').announceDrop(message, name);
         trackFor(message, 'hunt', { ranks: (result.hunt.ordered || []).map((a) => ({ rank: a.rank, count: a.count })) });
         return sent;
     },
