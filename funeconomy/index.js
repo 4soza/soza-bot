@@ -79,6 +79,12 @@ async function handleFunEconomy(message, client) {
         .catch((error) => console.error('[FUNECONOMY] touchGuild failed:', error.message));
 
     await command.execute(message, args, client);
+
+    // Pesan event otomatis (hanya saat event aktif, jeda 2 jam per server). Tidak ditunggu dan tidak boleh mengganggu command.
+    if (message.guild) {
+        require('./eventAnnounce').maybeAnnounce(message.channel, message.guild.id)
+            .catch((error) => console.error('[EVENT] announce failed:', error.message));
+    }
     return true;
 }
 
