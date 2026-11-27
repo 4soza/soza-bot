@@ -86,6 +86,9 @@ const nonNeg = (n) => Math.max(0, Math.ceil(Number(n) || 0));
 function describe(animal) {
     const s = animal.stats;
     const weapon = animal.weapon;
+    const WI = require('./WeaponInterface');
+    const sum = (v) => nonNeg((v?.[0] || 0) + (v?.[1] || 0));
+    const emojis = require('../customEmoji');
     return {
         icon: animal.animal?.uni || animal.animal?.value || '❔',
         name: animal.nickname || animal.animal?.name || '?',
@@ -94,164 +97,133 @@ function describe(animal) {
         hpMax: nonNeg(s.hp[1] + s.hp[3]),
         wp: nonNeg(s.wp[0]),
         wpMax: nonNeg(s.wp[1] + s.wp[3]),
-        weaponIcons: weapon ? [weapon.rank?.emoji, weapon.emoji, ...(weapon.passives || []).map((p) => p.emoji)].filter(Boolean) : [],
-        quality: weapon ? weapon.avgQuality : null,
+        weaponIcon: weapon?.emoji || null,
+        stats: [
+            { icon: emojis.get('stat_str'), text: String(sum(s.att)) },
+            { icon: emojis.get('stat_mag'), text: String(sum(s.mag)) },
+            { icon: emojis.get('stat_pr'), text: WI.resToPrettyPercent(s.pr) },
+            { icon: emojis.get('stat_mr'), text: WI.resToPrettyPercent(s.mr) }
+        ],
         buffIcons: (animal.buffs || []).map((b) => b.emoji).filter(Boolean)
     };
 }
 
-const W = 960;
-const PAD = 24;
-const CARD_W = 420;
-const CARD_H = 116;
-const GAP = 14;
-const HEADER_H = 52;
-const SCALE = 2;
+// Tampilan ala OwO (kotak hewan, bar HP/WP bergaris, stat, senjata). Satuan di bawah mengikuti gambar OwO 456 lebar.
+const W = 456;
+const ROW_H = 77;
+const TOP = 6;
+const SCALE = 3;
+const BG = '#252429';
+const LINE = '#d8d8d8';
+const BOX = 66;
 
 /**
  * Gambar state battle saat ini (state hewan sudah disesuaikan dengan turn yang ditampilkan).
- * `info` = { playerName, enemyName, turn, length }. Return Buffer PNG.
+ * Tim pemain di kiri, tim musuh di kanan (cermin), latar abu-abu. Return Buffer PNG.
  */
-async function renderBattleImage(playerTeam, enemyTeam, info = {}) {
+async function renderBattleImage(playerTeam, enemyTeam) {
     ensureFont();
     const { createCanvas } = canvasLib();
     const left = playerTeam.map(describe);
     const right = enemyTeam.map(describe);
     const rows = Math.max(left.length, right.length, 1);
-    const H = HEADER_H + rows * (CARD_H + GAP) + PAD - 4;
+    const H = TOP + rows * ROW_H - 1;
 
-    // Muat semua emoji sekaligus (paralel) sebelum menggambar.
     const wanted = new Set();
     for (const a of [...left, ...right]) {
         wanted.add(a.icon);
-        a.weaponIcons.forEach((e) => wanted.add(e));
+        if (a.weaponIcon) wanted.add(a.weaponIcon);
         a.buffIcons.forEach((e) => wanted.add(e));
+        a.stats.forEach((st) => wanted.add(st.icon));
     }
     const images = new Map(await Promise.all([...wanted].map(async (e) => [e, await loadEmoji(e)])));
 
     const canvas = createCanvas(W * SCALE, H * SCALE);
     const ctx = canvas.getContext('2d');
     ctx.scale(SCALE, SCALE);
-
-    // Latar
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#0d1122');
-    bg.addColorStop(1, '#161b36');
-    ctx.fillStyle = bg;
+    ctx.fillStyle = BG;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(70,120,255,0.07)';
-    ctx.fillRect(0, 0, W / 2, H);
-    ctx.fillStyle = 'rgba(255,70,90,0.07)';
-    ctx.fillRect(W / 2, 0, W / 2, H);
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.fillRect(W / 2 - 1, HEADER_H - 8, 2, H - HEADER_H);
+    ctx.lineWidth = 1;
 
-    // Judul tim
-    ctx.textBaseline = 'alphabetic';
-    ctx.font = font(22);
-    ctx.fillStyle = '#e8ecff';
-    ctx.textAlign = 'left';
-    ctx.fillText(fit(ctx, info.playerName || 'Your team', CARD_W - 80), PAD, 34);
-    ctx.textAlign = 'right';
-    ctx.fillText(fit(ctx, info.enemyName || 'Enemy', CARD_W - 80), W - PAD, 34);
-    if (info.length != null) {
-        ctx.textAlign = 'center';
-        ctx.font = font(14, 'normal');
-        ctx.fillStyle = '#8f98c9';
-        ctx.fillText(`Turn ${Math.min(info.turn ?? 0, info.length)}/${info.length}`, W / 2, 32);
-    }
-
-    const drawCard = (a, x, y, side) => {
-        const dead = a.hp <= 0;
-        ctx.save();
-        if (dead) ctx.globalAlpha = 0.5;
-
-        roundRect(ctx, x, y, CARD_W, CARD_H, 14);
-        ctx.fillStyle = '#1b2142';
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = side === 'player' ? '#3b5bdb' : '#c2415a';
-        ctx.stroke();
-
-        // Ikon hewan
-        ctx.beginPath();
-        ctx.arc(x + 14 + 30, y + 14 + 30, 32, 0, Math.PI * 2);
-        ctx.fillStyle = '#10152e';
-        ctx.fill();
-        drawEmoji(ctx, a.icon, images.get(a.icon), x + 14 + 8, y + 14 + 8, 44);
-
-        // Nama dan level
-        const tx = x + 86;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = '#f2f4ff';
-        ctx.font = font(17);
-        ctx.fillText(fit(ctx, `L. ${a.lvl} ${a.name}`, 200), tx, y + 30);
-
-        // Angka HP dan WP
+    const bar = (x, y, w, h, ratio, color, text, fromRight) => {
+        const r = Math.max(0, Math.min(1, ratio));
+        if (r > 0) {
+            ctx.fillStyle = color;
+            const fw = Math.max(1, Math.round((w - 1) * r));
+            if (fromRight) ctx.fillRect(x + w - 0.5 - fw, y + 0.5, fw, h - 1);
+            else ctx.fillRect(x + 0.5, y + 0.5, fw, h - 1);
+        }
+        ctx.strokeStyle = LINE;
+        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = font(10, 'normal');
         ctx.textAlign = 'right';
-        ctx.font = font(13, 'normal');
-        ctx.fillStyle = '#7ee0a1';
-        ctx.fillText(`${a.hp}/${a.hpMax} HP`, x + CARD_W - 14, y + 28);
-        ctx.fillStyle = '#7db4ff';
-        ctx.fillText(`${a.wp}/${a.wpMax} WP`, x + CARD_W - 14, y + 46);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + w - 3, y + h / 2 + 0.5);
+    };
 
-        // Bar HP
-        const barW = CARD_W - 86 - 14;
-        const bar = (by, h, ratio, color) => {
-            roundRect(ctx, tx, by, barW, h, h / 2);
-            ctx.fillStyle = '#0b0f22';
-            ctx.fill();
-            const w = Math.max(0, Math.min(1, ratio)) * barW;
-            if (w > 0) {
-                roundRect(ctx, tx, by, Math.max(w, h), h, h / 2);
-                ctx.fillStyle = color;
-                ctx.fill();
-            }
-        };
-        bar(y + 56, 12, a.hpMax ? a.hp / a.hpMax : 0, a.hp / (a.hpMax || 1) > 0.3 ? '#2fbf71' : '#e0b43a');
-        bar(y + 74, 8, a.wpMax ? a.wp / a.wpMax : 0, '#3d8bfd');
+    const drawAnimal = (a, x0, y0, side) => {
+        const dead = a.hp <= 0;
+        const isLeft = side === 'player';
+        ctx.save();
+        if (dead) ctx.globalAlpha = 0.35;
 
-        // Senjata, passive, dan buff
-        let ix = tx;
-        const iy = y + 88;
-        for (const e of a.weaponIcons) {
-            drawEmoji(ctx, e, images.get(e), ix, iy, 22);
-            ix += 26;
-        }
-        if (a.quality != null) {
-            ctx.textAlign = 'left';
+        // kotak hewan
+        const boxX = isLeft ? x0 : W - 6 - BOX;
+        ctx.strokeStyle = LINE;
+        ctx.strokeRect(boxX + 0.5, y0 + 0.5, BOX - 1, BOX - 1);
+        drawEmoji(ctx, a.icon, images.get(a.icon), boxX + 6, y0 + 6, BOX - 12);
+
+        // bar HP dan WP
+        const barX = isLeft ? boxX + BOX : 6 + 0; // kanan: bar mulai dari x=250 sampai kotak hewan
+        const barW = isLeft ? 134 : (boxX - 250);
+        const bx = isLeft ? barX : 250;
+        bar(bx, y0, barW, 12, a.hpMax ? a.hp / a.hpMax : 0, '#a94442', `${a.hp}/${a.hpMax}`, !isLeft);
+        bar(bx, y0 + 11, barW, 12, a.wpMax ? a.wp / a.wpMax : 0, '#4e66a8', `${a.wp}/${a.wpMax}`, !isLeft);
+
+        // nama
+        ctx.font = font(10, 'normal');
+        ctx.fillStyle = '#ffffff';
+        ctx.textBaseline = 'alphabetic';
+        const nm = fit(ctx, a.name, 120);
+        if (isLeft) { ctx.textAlign = 'right'; ctx.fillText(nm, bx + barW - 2, y0 + 36); }
+        else { ctx.textAlign = 'left'; ctx.fillText(nm, bx + 2, y0 + 36); }
+
+        // stat (4 baris)
+        const sy = y0 + 39;
+        // Letak stat tetap; kalau tidak punya senjata, hanya gambar senjatanya yang dikosongkan.
+        const statX = isLeft ? bx + 35 : bx + 90;
+        a.stats.forEach((st, i) => {
+            const ry = sy + i * 7.2;
+            ctx.font = font(8.5, 'normal');
+            ctx.fillStyle = '#ffffff';
             ctx.textBaseline = 'middle';
-            ctx.font = font(13, 'normal');
-            ctx.fillStyle = '#c7cdf2';
-            ctx.fillText(`${a.quality}%`, ix + 2, iy + 12);
-            ix += ctx.measureText(`${a.quality}%`).width + 12;
-        }
-        for (const e of a.buffIcons) {
-            if (ix + 22 > x + CARD_W - 10) break;
-            drawEmoji(ctx, e, images.get(e), ix, iy, 22);
-            ix += 26;
-        }
+            if (isLeft) {
+                drawEmoji(ctx, st.icon, images.get(st.icon), statX, ry, 7);
+                ctx.textAlign = 'left';
+                ctx.fillText(st.text, statX + 10, ry + 3.5);
+            } else {
+                ctx.textAlign = 'right';
+                ctx.fillText(st.text, statX - 2, ry + 3.5);
+                drawEmoji(ctx, st.icon, images.get(st.icon), statX, ry, 7);
+            }
+        });
+
+        // senjata
+        const wSize = 32;
+        const wx = isLeft ? bx + 2 : bx + barW - wSize - 2;
+        if (a.weaponIcon) drawEmoji(ctx, a.weaponIcon, images.get(a.weaponIcon), wx, y0 + 38, wSize);
+
+        // buff saja (tanpa passive): tim kiri di kanan stat, tim kanan di kiri stat, sejajar seperti OwO
+        a.buffIcons.slice(0, 4).forEach((e, i) => {
+            const bxp = isLeft ? statX + 33 + i * 17 : bx + 52 - i * 17;
+            drawEmoji(ctx, e, images.get(e), bxp, y0 + 40, 16);
+        });
         ctx.restore();
     };
 
-    left.forEach((a, i) => drawCard(a, PAD, HEADER_H + i * (CARD_H + GAP), 'player'));
-    right.forEach((a, i) => drawCard(a, W - PAD - CARD_W, HEADER_H + i * (CARD_H + GAP), 'enemy'));
-
-    // Lingkaran VS
-    const cy = HEADER_H + (rows * (CARD_H + GAP) - GAP) / 2;
-    ctx.beginPath();
-    ctx.arc(W / 2, cy, 26, 0, Math.PI * 2);
-    ctx.fillStyle = '#10152e';
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#4a5390';
-    ctx.stroke();
-    ctx.fillStyle = '#e8ecff';
-    ctx.font = font(18);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('VS', W / 2, cy + 1);
+    left.forEach((a, i) => drawAnimal(a, 6, TOP + i * ROW_H, 'player'));
+    right.forEach((a, i) => drawAnimal(a, 0, TOP + i * ROW_H, 'enemy'));
 
     return canvas.toBuffer('image/png');
 }
