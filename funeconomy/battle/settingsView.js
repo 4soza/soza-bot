@@ -9,7 +9,9 @@ const {
 } = require('discord.js');
 const cfg = require('../config');
 const settingsDb = require('./settingsDb');
-const { userName } = require('./commandUtil');
+const { escapeMarkdown } = require('discord.js');
+// Pakai username (bukan display name), seperti OwO.
+const userName = (_guild, user) => escapeMarkdown(user?.username ?? 'Someone');
 
 const BUTTON_PREFIX = 'fbs';
 const ACCENT = 0x7ab8f5;
@@ -41,7 +43,7 @@ function build(state) {
     const divider = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
     const container = new ContainerBuilder().setAccentColor(expired ? ACCENT_EXPIRED : ACCENT);
 
-    let header = `## Battle Settings\n-# ${state.ownerName}'s settings`;
+    let header = '## User Settings';
     if (state.changes?.length) {
         header += '\n' + state.changes
             .map((c, i) => `-# ${i + 1}. **${c.by}** changed \`${byKey(c.key).id}\` from \`${c.from}\` to \`${c.to}\``)
