@@ -44,7 +44,7 @@ function build(state) {
     let header = `## Battle Settings\n-# ${state.ownerName}'s settings`;
     if (state.changes?.length) {
         header += '\n' + state.changes
-            .map((c, i) => `${i + 1}. **${c.by}** changed \`${byKey(c.key).id}\` from \`${c.from}\` to \`${c.to}\``)
+            .map((c, i) => `-# ${i + 1}. **${c.by}** changed \`${byKey(c.key).id}\` from \`${c.from}\` to \`${c.to}\``)
             .join('\n');
     }
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
