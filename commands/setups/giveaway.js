@@ -1,5 +1,5 @@
 // /giveaway ala OwO: start, end, reroll, list, delete
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, ChannelType } = require('discord.js');
 const GiveawayController = require('../../models/giveaway/Controller');
 const checkPermissions = require('../../utils/checkPermissions');
 
@@ -9,7 +9,6 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('giveaway')
     .setDescription('Giveaway ala OwO')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
     .addSubcommand((s) => s.setName('start').setDescription('Mulai giveaway baru')
       .addStringOption((o) => o.setName('prize').setDescription('Hadiah').setRequired(true).setMaxLength(512))
       .addStringOption((o) => o.setName('duration').setDescription('Durasi, contoh: 30m, 2h, 1d').setRequired(true))
@@ -23,8 +22,9 @@ module.exports = {
     .addSubcommand((s) => s.setName('delete').setDescription('Hapus giveaway').addStringOption(idOption)),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    // Izin dicek di sini (owner server, bot manager, atau pemilik bot). Command terlihat oleh semua, tapi hanya yang berizin yang bisa memakainya.
     if (!await checkPermissions(interaction)) return;
+    await interaction.deferReply({ ephemeral: true });
     const reply = (text) => interaction.editReply({ content: text });
     const sub = interaction.options.getSubcommand();
 
