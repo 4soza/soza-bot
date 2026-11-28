@@ -36,4 +36,21 @@ function safeSlice(text, max) {
 /* Untuk tempat yang tidak bisa menampilkan emoji (label menu pilihan): <a:nama:id> jadi :nama: */
 const plainText = (text) => String(text).replace(new RegExp(EMOJI.source, 'g'), (m) => `:${m.split(':')[1]}:`);
 
-module.exports = { cleanKeepingEmoji, visibleLength, safeSlice, plainText, isEmoji };
+/*
+ * Tanpa Nitro, Discord mengirim emoji custom sebagai teks ":nama:" (tanpa ID).
+ * Di sini ":nama:" dicarikan emoji bernama sama di semua server tempat bot berada (dan emoji aplikasi bot),
+ * lalu diganti jadi <:nama:id> / <a:nama:id>. Kalau tidak ditemukan, teks dibiarkan apa adanya.
+ */
+function resolveShortcodes(text, client) {
+	const pools = [client?.emojis?.cache, client?.application?.emojis?.cache].filter(Boolean);
+	if (!pools.length) return String(text);
+	return String(text).split(SPLIT).map((part, i) => (i % 2 ? part : part.replace(/:([A-Za-z0-9_]{2,32}):/g, (match, name) => {
+		for (const pool of pools) {
+			const found = pool.find((e) => e.name === name && e.available !== false);
+			if (found) return `<${found.animated ? 'a' : ''}:${found.name}:${found.id}>`;
+		}
+		return match;
+	}))).join('');
+}
+
+module.exports = { resolveShortcodes, cleanKeepingEmoji, visibleLength, safeSlice, plainText, isEmoji };
