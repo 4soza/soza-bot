@@ -10,8 +10,12 @@ module.exports = {
     .setName('giveaway')
     .setDescription('Giveaway ala OwO')
     .addSubcommand((s) => s.setName('start').setDescription('Mulai giveaway baru')
-      .addStringOption((o) => o.setName('prize').setDescription('Hadiah').setRequired(true).setMaxLength(512))
+      .addStringOption((o) => o.setName('prize').setDescription('Hadiah 1').setRequired(true).setMaxLength(512))
       .addStringOption((o) => o.setName('duration').setDescription('Durasi, contoh: 30m, 2h, 1d').setRequired(true))
+      .addStringOption((o) => o.setName('prize2').setDescription('Hadiah 2 (opsional)').setMaxLength(512))
+      .addStringOption((o) => o.setName('prize3').setDescription('Hadiah 3 (opsional)').setMaxLength(512))
+      .addStringOption((o) => o.setName('prize4').setDescription('Hadiah 4 (opsional)').setMaxLength(512))
+      .addStringOption((o) => o.setName('prize5').setDescription('Hadiah 5 (opsional)').setMaxLength(512))
       .addIntegerOption((o) => o.setName('winners').setDescription('Jumlah pemenang (1-100)').setMinValue(1).setMaxValue(100))
       .addChannelOption((o) => o.setName('channel').setDescription('Channel giveaway').addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)))
     .addSubcommand((s) => s.setName('end').setDescription('Akhiri giveaway sekarang').addStringOption(idOption))
@@ -30,7 +34,11 @@ module.exports = {
 
     try {
       if (sub === 'start') {
-        const prize = interaction.options.getString('prize');
+        // Hadiah 1 wajib, hadiah 2-5 opsional. Disimpan satu per baris di field prize.
+        const prize = ['prize', 'prize2', 'prize3', 'prize4', 'prize5']
+          .map((name) => interaction.options.getString(name)?.trim())
+          .filter(Boolean)
+          .join('\n');
         const winners = interaction.options.getInteger('winners') || 1;
         const channel = interaction.options.getChannel('channel') || interaction.channel;
         const durationMs = GiveawayController.parseDuration(interaction.options.getString('duration'));
@@ -43,7 +51,7 @@ module.exports = {
       if (sub === 'list') {
         const items = await GiveawayController.list(interaction.guild.id);
         if (!items.length) return reply('🚫 **|** Tidak ada giveaway aktif.');
-        const lines = items.map((g) => `• **${g.prize}** — <#${g.channelId}> • berakhir <t:${Math.floor(g.endTime.getTime() / 1000)}:R> • ${g.entries.length} Users\n  ID: \`${g.messageId}\``);
+        const lines = items.map((g) => `• **${g.prize.split('\n').join(' / ')}** — <#${g.channelId}> • berakhir <t:${Math.floor(g.endTime.getTime() / 1000)}:R> • ${g.entries.length} Users\n  ID: \`${g.messageId}\``);
         return reply(`🎉 **|** Giveaway aktif:\n${lines.join('\n')}`.slice(0, 2000));
       }
 
