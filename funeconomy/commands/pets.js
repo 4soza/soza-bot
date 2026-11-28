@@ -5,6 +5,7 @@ const teamUtil = require('../battle/teamUtil');
 const { EMBED_COLOR } = require('../battle/battleDisplay');
 const { sendEmbed, canEmbed, send, onCooldown } = require('../utils');
 const cooldown = require('../cooldown');
+const { safeSlice } = require('../battle/emojiText');
 const { fail, userName } = require('../battle/commandUtil');
 
 // spets = hewan yang pernah bertarung (punya XP), maks 25 teratas
@@ -28,7 +29,7 @@ module.exports = {
         const fields = [];
         let letters = title.length;
         for (const a of animals) {
-            const field = { name: `${a.animal.uni} ${a.nickname}`.slice(0, 256), value: teamUtil.statBlock(a, digits), inline: true };
+            const field = { name: safeSlice(`${a.animal.uni} ${a.nickname}`, 256), value: teamUtil.statBlock(a, digits), inline: true };
             letters += field.name.length + field.value.length;
             if (letters > 5800) break;
             fields.push(field);

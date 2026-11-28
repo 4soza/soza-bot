@@ -4,6 +4,7 @@ const Animal = require('../../models/funeconomy/animal');
 const { onCooldown } = require('../utils');
 const cooldown = require('../cooldown');
 const { fail, reply, animalFromToken, cleanNickname } = require('../battle/commandUtil');
+const { visibleLength } = require('../battle/emojiText');
 
 // srename <animal> <name>
 module.exports = {
@@ -14,7 +15,7 @@ module.exports = {
         const animal = animalFromToken(args[0]);
         if (!animal) return fail(message, "I couldn't find that animal! D:");
         const input = args.slice(1).join(' ');
-        if (input.length > 35) return fail(message, 'The nickname is too long!', 3000);
+        if (visibleLength(input) > 35) return fail(message, 'The nickname is too long!', 3000);
         const nickname = cleanNickname(input);
         if (!nickname) return fail(message, 'Invalid nickname!', 3000);
         if (onCooldown(message, 'team')) return;
