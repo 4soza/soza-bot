@@ -18,7 +18,7 @@ class GiveawayController {
     const noWinners = ended && !(g.winnersList && g.winnersList.length);
     const count = g.entries ? g.entries.length : 0;
 
-    let text = `**${g.winners} Lucky User${g.winners === 1 ? '' : 's'}** will have a chance to win!\nWinners will win:\n\n**• ${g.prize}**\n`;
+    let text = `**${g.winners} Lucky User${g.winners === 1 ? '' : 's'}** will have a chance to win!\nWinners will win:\n\n${g.prize.split('\n').map((p) => `**• ${p}**`).join('\n')}\n`;
     if (!ended) {
       text += `\nGiveaway will end **<t:${unix(g.endTime)}:R>**\nGoodluck to those who join!`;
     } else if (noWinners) {

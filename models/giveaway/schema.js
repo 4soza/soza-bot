@@ -30,10 +30,11 @@ const giveawaySchema = new mongoose.Schema({
     default: '',
     maxlength: 1024
   },
+  // Satu hadiah per baris (maksimal 5 hadiah)
   prize: {
     type: String,
     required: true,
-    maxlength: 512
+    maxlength: 2600
   },
   startTime: {
     type: Date,
