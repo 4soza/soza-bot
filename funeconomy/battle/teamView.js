@@ -8,6 +8,7 @@ const teamUtil = require('./teamUtil.js');
 const { EMBED_COLOR } = require('./battleDisplay.js');
 const Animal = require('../../models/funeconomy/animal');
 const animalUtil = require('./animalUtil.js');
+const { safeSlice, plainText } = require('./emojiText');
 const { ANIMALS, RANKS } = require('../zoo/data');
 
 const V2 = 32768; // MessageFlags.IsComponentsV2
@@ -44,7 +45,7 @@ async function teamEmbed(userId, ownerName, avatar, teamDoc, index, total, activ
 			fields.push({ name: `[${pos}] none`, value: `*\`${cfg.PREFIX}team add {animal} ${pos}\`*`, inline: true });
 		} else {
 			fields.push({
-				name: `[${pos}] ${animal.animal.uni} **${animal.nickname}**`.slice(0, 256),
+				name: safeSlice(`[${pos}] ${animal.animal.uni} **${animal.nickname}**`, 256),
 				value: teamUtil.statBlock(animal, digits),
 				inline: true
 			});
@@ -132,7 +133,7 @@ async function settingsMessage(userId, { page = 0, msgId = '0', notice } = {}) {
 		const current = team.slots[pos - 1] || null;
 		const options = [{ label: '— Empty slot —', value: 'none', default: !current }];
 		for (const a of slice) {
-			const option = { label: `[Lvl ${a.lvl}] ${a.nickname}`.slice(0, 100), value: a.key, default: a.key === current };
+			const option = { label: `[Lvl ${a.lvl}] ${plainText(a.nickname)}`.slice(0, 100), value: a.key, default: a.key === current };
 			const emoji = optionEmoji(a.uni);
 			if (emoji) option.emoji = emoji;
 			options.push(option);

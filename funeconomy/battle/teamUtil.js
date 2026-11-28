@@ -169,7 +169,7 @@ async function setSlot(userId, pos, key) {
 async function renameTeam(userId, name) {
 	name = String(name).replace(/[\u0000-\u001f`@]/g, '').trim();
 	if (!name.length) return { error: 'invalid' };
-	if (name.length > MAX_TEAM_NAME) return { error: 'long' };
+	if (require('./emojiText').visibleLength(name) > MAX_TEAM_NAME) return { error: 'long' };
 	const active = await getActiveTeam(userId);
 	if (!active) return { error: 'noteam' };
 	await Team.updateOne({ userId }, { $set: { [`teams.${active.index}.name`]: name } });

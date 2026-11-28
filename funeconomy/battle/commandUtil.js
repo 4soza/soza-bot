@@ -26,7 +26,9 @@ const userName = (guild, user) =>
 	escapeMarkdown(guild?.members?.cache?.get(user.id)?.displayName ?? user.globalName ?? user.username ?? 'Someone');
 
 /* Nama hewan yang aman untuk ditampilkan */
-const cleanNickname = (text) => String(text).replace(/[\u0000-\u001f`@*_~|>]/g, '').replace(/\s+/g, ' ').trim();
+const { cleanKeepingEmoji, visibleLength } = require('./emojiText');
+const cleanNickname = (text) =>
+	cleanKeepingEmoji(text, (part) => part.replace(/[\u0000-\u001f`@*_~|>]/g, '')).replace(/\s+/g, ' ').trim();
 
 /* hewan dari token (nama/alias/emoji) */
 const animalFromToken = (token) => require('../zoo/data').findAnimal(token);
