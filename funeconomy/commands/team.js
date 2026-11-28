@@ -57,9 +57,11 @@ async function remove(message, args) {
     return reply(message, TEAM_EMOJI, `Successfully changed the team!\n${cfg.EMOJI.BLANK} **|** Your team: ${slotsText(result.slots)}`);
 }
 
+const { resolveShortcodes } = require('../battle/emojiText');
+
 async function rename(message, args) {
     if (args.length < 2) return fail(message, `the correct command is \`${cfg.PREFIX}team rename {name}\`!`, 5000);
-    const result = await teamUtil.renameTeam(message.author.id, args.slice(1).join(' '));
+    const result = await teamUtil.renameTeam(message.author.id, resolveShortcodes(args.slice(1).join(' '), message.client));
     if (result.error === 'long') return fail(message, 'The team name is too long!', 3000);
     if (result.error === 'invalid') return fail(message, 'The name has invalid characters!', 3000);
     if (result.error === 'noteam') return fail(message, `You don't have a team! Please set one with \`${cfg.PREFIX}team add {animal}\``, 5000);
